@@ -1,0 +1,256 @@
+<!-- Dashboard Scripts Component -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const clearButton = document.getElementById('clear-button');
+    const accountSummary = document.getElementById('account-summary');
+    const portfolioPerformance = document.getElementById('portfolio-performance');
+    const recentTrades = document.getElementById('recent-trades');
+
+    // Function to mask sensitive data
+    function maskSensitiveData(text) {
+        text = text.replace(/ALPACA_API_KEY='[^']+'/g, "ALPACA_API_KEY='********'");
+        text = text.replace(/ALPACA_SECRET_KEY='[^']+'/g, "ALPACA_SECRET_KEY='********'");
+        return text;
+    }
+
+    // Function to store Alpaca credentials
+    async function storeAlpacaCredentials(apiKey, secretKey) {
+        try {
+            const response = await fetch('/store_alpaca_credentials', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    alpaca_api_key: apiKey,
+                    alpaca_secret_key: secretKey
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.message) {
+                addBotMessage(`✅ I've detected and securely stored your Alpaca API credentials. I'll help you with:
+                • Real-time portfolio tracking
+                • Trade monitoring
+                • Market analysis
+                • Stock information
+                
+                What would you like to know about?`);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            addBotMessage(`❌ Sorry, there was an error storing your credentials. Please try again later.`);
+        }
+    }
+
+    // Function to add a user message
+    function addUserMessage(text) {
+        const message = document.createElement('div');
+        message.className = 'message user-message';
+        message.innerHTML = maskSensitiveData(text);
+        chatMessages.appendChild(message);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Function to add a bot message
+    function addBotMessage(text) {
+        const message = document.createElement('div');
+        message.className = 'message bot-message';
+        // Convert bullet points and preserve newlines
+        text = text.replace(/•/g, '•').replace(/\n/g, '<br>');
+        message.innerHTML = text;
+        chatMessages.appendChild(message);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Function to process the message
+    async function processMessage(message) {
+        addUserMessage(message);
+
+        const apiKeyMatch = message.match(/ALPACA_API_KEY='([^']+)'/);
+        const secretKeyMatch = message.match(/ALPACA_SECRET_KEY='([^']+)'/);
+        
+        if (apiKeyMatch && secretKeyMatch) {
+            await storeAlpacaCredentials(apiKeyMatch[1], secretKeyMatch[1]);
+        }
+
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: message })
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                addBotMessage('❌ Error: ' + data.error);
+            } else {
+                addBotMessage(data.response);
+                
+                if (data.visual_data) {
+                    const visualContent = document.getElementById('visual-content');
+                    // Add visual data handling here
+                }
+            }
+        } catch (error) {
+            addBotMessage('❌ Error: Could not send message');
+        }
+    }
+
+    // Function to format currency
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+        }).format(value);
+    }
+
+    // Function to format percentage
+    function formatPercentage(value) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'percent',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value / 100);
+    }
+
+    // Function to update portfolio data
+    async function updatePortfolioData() {
+        try {
+            // Get account summary
+            const summaryResponse = await fetch('/api/portfolio/metrics');
+            const summaryData = await summaryResponse.json();
+            
+            if (summaryData.error) {
+                accountSummary.innerHTML = `<div class="error-message">${summaryData.error}</div>`;
+                return;
+            }
+
+            // Update account summary
+            let summaryHtml = '<div class="metrics-grid">';
+            for (const [key, value] of Object.entries(summaryData.metrics)) {
+                summaryHtml += `
+                    <div class="metric-item">
+                        <div class="metric-label">${key}</div>
+                        <div class="metric-value">${value}</div>
+                    </div>`;
+            }
+            summaryHtml += '</div>';
+            accountSummary.innerHTML = summaryHtml;
+            accountSummary.classList.remove('loading');
+
+            // Get portfolio performance
+            const performanceResponse = await fetch('/api/portfolio/performance');
+            const performanceData = await performanceResponse.json();
+            
+            if (performanceData.error) {
+                portfolioPerformance.innerHTML = `<div class="error-message">${performanceData.error}</div>`;
+                return;
+            }
+
+            // Update portfolio performance
+            let performanceHtml = `
+                <div class="performance-stats">
+                    <div class="stat">
+                        <span class="label">Today's Return:</span>
+                        <span class="value ${performanceData.today_return >= 0 ? 'positive' : 'negative'}">
+                            ${formatPercentage(performanceData.today_return)}
+                        </span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Total Return:</span>
+                        <span class="value ${performanceData.total_return >= 0 ? 'positive' : 'negative'}">
+                            ${formatPercentage(performanceData.total_return)}
+                        </span>
+                    </div>
+                </div>`;
+            portfolioPerformance.innerHTML = performanceHtml;
+            portfolioPerformance.classList.remove('loading');
+
+            // Get recent trades
+            const tradesResponse = await fetch('/api/portfolio/trades');
+            const tradesData = await tradesResponse.json();
+            
+            if (tradesData.error) {
+                recentTrades.innerHTML = `<div class="error-message">${tradesData.error}</div>`;
+                return;
+            }
+
+            // Update recent trades
+            if (tradesData.trades.length === 0) {
+                recentTrades.innerHTML = '<div class="no-trades">No recent trades</div>';
+            } else {
+                let tradesHtml = '<div class="trades-list">';
+                for (const trade of tradesData.trades) {
+                    tradesHtml += `
+                        <div class="trade-item">
+                            <div class="trade-symbol">${trade.symbol}</div>
+                            <div class="trade-details">
+                                <span class="trade-side ${trade.side}">${trade.side}</span>
+                                <span class="trade-quantity">${trade.qty} shares</span>
+                                <span class="trade-price">@ ${formatCurrency(trade.price)}</span>
+                            </div>
+                            <div class="trade-time">${new Date(trade.timestamp).toLocaleString()}</div>
+                        </div>`;
+                }
+                tradesHtml += '</div>';
+                recentTrades.innerHTML = tradesHtml;
+            }
+            recentTrades.classList.remove('loading');
+
+        } catch (error) {
+            console.error('Error updating portfolio:', error);
+            accountSummary.innerHTML = '<div class="error-message">Error loading portfolio data</div>';
+            portfolioPerformance.innerHTML = '<div class="error-message">Error loading performance data</div>';
+            recentTrades.innerHTML = '<div class="error-message">Error loading trades data</div>';
+        }
+    }
+
+    // Event listeners
+    messageInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const message = messageInput.value.trim();
+            if (message) {
+                processMessage(message);
+                messageInput.value = '';
+            }
+        }
+    });
+
+    sendButton.addEventListener('click', function() {
+        const message = messageInput.value.trim();
+        if (message) {
+            processMessage(message);
+            messageInput.value = '';
+        }
+    });
+
+    clearButton.addEventListener('click', async function() {
+        try {
+            const response = await fetch('/chat/clear', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                chatMessages.innerHTML = '';
+                addBotMessage('Chat history cleared. How can I help you?');
+            }
+        } catch (error) {
+            console.error('Error clearing chat:', error);
+        }
+    });
+
+    // Initial portfolio data update
+    updatePortfolioData();
+
+    // Update portfolio data every 30 seconds
+    setInterval(updatePortfolioData, 30000);
+});
+</script>

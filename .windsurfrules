@@ -1,0 +1,3 @@
+Try to be as modular as possible, and avoid duplicate code.
+Always verify more code and files than you deem necessary, just in case you missed something.
+Never remove code or function if not asked explicitly to do so.

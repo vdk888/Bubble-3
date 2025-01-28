@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% endblock %} - ChatApp</title>
+    <title>{% block title %}{% endblock %} - Bubble Invest</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -70,12 +70,28 @@
         .nav-link.active {
             color: var(--accent-color);
         }
+        
+        .auth-alert {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+        
+        .auth-alert-error {
+            background-color: var(--error-color);
+            color: var(--dark-text-primary);
+        }
+        
+        .auth-alert-success {
+            background-color: var(--success-color);
+            color: var(--dark-text-primary);
+        }
     </style>
     {% block styles %}{% endblock %}
 </head>
 <body>
     <nav class="navbar">
-        <a class="navbar-brand" href="{{ url_for('index') }}">ChatApp</a>
+        <a class="navbar-brand" href="{{ url_for('index') }}">Bubble Invest</a>
         <div class="navbar-nav">
             {% if current_user.is_authenticated %}
                 <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">Dashboard</a>
@@ -91,7 +107,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
+                <div class="auth-alert auth-alert-{{ category }}">{{ message }}</div>
             {% endfor %}
         {% endif %}
     {% endwith %}

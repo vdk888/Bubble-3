@@ -1,0 +1,21 @@
+<!-- Chat Panel Component -->
+<div class="chat-panel">
+    <div class="panel-header">
+        <h2>Bubble Invest AI Assistant</h2>
+        <a href="{{ url_for('settings') }}" class="settings-button">
+            <i class="fas fa-cog"></i>
+        </a>
+    </div>
+    <div id="chat-messages">
+        {% if initial_message %}
+            <div class="message bot-message">{{ initial_message }}</div>
+        {% endif %}
+    </div>
+    <div class="chat-input">
+        <div class="input-group">
+            <input type="text" id="message-input" class="dark-input" placeholder="Type your message...">
+            <button id="send-button" class="btn-dark">Send</button>
+            <button id="clear-button" class="btn-dark secondary">Clear</button>
+        </div>
+    </div>
+</div>

@@ -1,20 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Welcome{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/welcome.css') }}">
+{% endblock %}
 
 {% block content %}
-<div class="text-center">
-    <h1 class="display-4 mb-4">Welcome to ChatApp</h1>
-    <p class="lead">Experience intelligent conversations with our AI chatbot.</p>
-    {% if not current_user.is_authenticated %}
-        <div class="mt-4">
-            <a href="{{ url_for('login') }}" class="btn btn-primary me-2">Login</a>
-            <a href="{{ url_for('signup') }}" class="btn btn-outline-primary">Sign Up</a>
-        </div>
-    {% else %}
-        <div class="mt-4">
-            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
-        </div>
-    {% endif %}
+<div class="welcome-container">
+    <div class="welcome-content">
+        <h1 class="welcome-title">Welcome to Bubble Invest</h1>
+        <p class="welcome-subtitle">Experience intelligent AI-powered investment analysis and portfolio management.</p>
+        {% if not current_user.is_authenticated %}
+            <div class="welcome-buttons">
+                <a href="{{ url_for('login') }}" class="welcome-button primary">Login</a>
+                <a href="{{ url_for('signup') }}" class="welcome-button outline">Sign Up</a>
+            </div>
+        {% else %}
+            <div class="welcome-buttons">
+                <a href="{{ url_for('dashboard') }}" class="welcome-button primary">Go to Dashboard</a>
+            </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
