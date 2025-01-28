@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<style>
+.settings-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.settings-card {
+    background: var(--dark-bg-secondary);
+    border: 1px solid var(--dark-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.settings-card-header {
+    background: var(--dark-bg-tertiary);
+    padding: 1rem;
+    border-bottom: 1px solid var(--dark-border);
+}
+
+.settings-card-header h2 {
+    margin: 0;
+    color: var(--dark-text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.settings-card-body {
+    padding: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--dark-text-primary);
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--dark-bg-primary);
+    border: 1px solid var(--dark-border);
+    border-radius: 0.5rem;
+    color: var(--dark-text-primary);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.form-text {
+    margin-top: 0.5rem;
+    color: var(--dark-text-secondary);
+    font-size: 0.875rem;
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary {
+    background: var(--accent-color);
+    color: var(--dark-text-primary);
+}
+
+.btn-primary:hover {
+    background: var(--accent-color-hover);
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.alert-success {
+    background: var(--success-color);
+    color: var(--dark-text-primary);
+}
+
+.alert-error {
+    background: var(--error-color);
+    color: var(--dark-text-primary);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h2>Account Settings</h2>
+        </div>
+        <div class="settings-card-body">
+            <form method="POST">
+                <div class="form-group">
+                    <label for="alpaca_api_key" class="form-label">Alpaca API Key</label>
+                    <input type="password" class="form-control" id="alpaca_api_key" name="alpaca_api_key" 
+                           value="{{ current_user.alpaca_api_key or '' }}" required>
+                    <div class="form-text">Find this in your Alpaca dashboard under Paper Trading settings</div>
+                </div>
+                <div class="form-group">
+                    <label for="alpaca_secret_key" class="form-label">Alpaca Secret Key</label>
+                    <input type="password" class="form-control" id="alpaca_secret_key" name="alpaca_secret_key"
+                           value="{{ current_user.alpaca_secret_key or '' }}" required>
+                    <div class="form-text">Find this alongside your API key in the Alpaca dashboard</div>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Credentials</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

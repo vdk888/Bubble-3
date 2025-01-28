@@ -1,0 +1,82 @@
+/* Dark theme colors */
+:root {
+    --dark-bg-primary: #121212;
+    --dark-bg-secondary: #1e1e1e;
+    --dark-bg-tertiary: #2d2d2d;
+    --dark-text-primary: #ffffff;
+    --dark-text-secondary: #b3b3b3;
+    --dark-border: #404040;
+    --dark-card-bg: #262626;
+    --dark-input-bg: #333333;
+}
+
+/* Base styles */
+body {
+    background-color: var(--dark-bg-primary) !important;
+    color: var(--dark-text-primary) !important;
+}
+
+/* Navigation */
+.navbar-dark {
+    background-color: var(--dark-bg-secondary) !important;
+    border-bottom: 1px solid var(--dark-border);
+}
+
+/* Cards */
+.card {
+    background-color: var(--dark-card-bg) !important;
+    border: 1px solid var(--dark-border) !important;
+}
+
+.card-header {
+    background-color: var(--dark-bg-tertiary) !important;
+    border-bottom: 1px solid var(--dark-border) !important;
+    color: var(--dark-text-primary) !important;
+}
+
+/* Chat messages */
+#chat-messages {
+    background-color: var(--dark-bg-tertiary) !important;
+    border: 1px solid var(--dark-border);
+}
+
+.message {
+    background-color: var(--dark-card-bg) !important;
+    color: var(--dark-text-primary) !important;
+    border: 1px solid var(--dark-border);
+}
+
+/* Form elements */
+.form-control {
+    background-color: var(--dark-input-bg) !important;
+    border: 1px solid var(--dark-border) !important;
+    color: var(--dark-text-primary) !important;
+}
+
+.form-control:focus {
+    background-color: var(--dark-input-bg) !important;
+    border-color: #007bff !important;
+    color: var(--dark-text-primary) !important;
+}
+
+/* Text colors */
+.text-muted {
+    color: var(--dark-text-secondary) !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--dark-text-primary) !important;
+}
+
+/* Portfolio section */
+.portfolio-overview {
+    background-color: var(--dark-card-bg) !important;
+    color: var(--dark-text-primary) !important;
+}
+
+/* Chat input area */
+.chat-input {
+    background-color: var(--dark-input-bg) !important;
+    border: 1px solid var(--dark-border) !important;
+    color: var(--dark-text-primary) !important;
+}

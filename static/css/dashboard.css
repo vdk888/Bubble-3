@@ -1,0 +1,113 @@
+.dashboard-container {
+    display: flex;
+    gap: 20px;
+    height: calc(100vh - 150px);
+    padding: 20px;
+    margin-top: -1rem;
+}
+
+.chat-section {
+    flex: 1;
+    min-width: 0;
+    transition: all 0.3s ease;
+}
+
+.side-panel {
+    width: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.side-panel.active {
+    width: 40%;
+    min-width: 400px;
+}
+
+.chat-section.with-panel {
+    flex: 0.6;
+}
+
+#chat-messages {
+    height: 100%;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.message {
+    margin-bottom: 1rem;
+    max-width: 80%;
+    padding: 0.8rem 1.2rem;
+    border-radius: 1rem;
+    position: relative;
+}
+
+.message.user {
+    margin-left: auto;
+    background-color: #007bff;
+    color: white;
+    border-radius: 1rem 1rem 0 1rem;
+}
+
+.message.assistant {
+    margin-right: auto;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 1rem 1rem 1rem 0;
+}
+
+#visual-content {
+    overflow-y: auto;
+    height: 100%;
+}
+
+.card {
+    margin: 0;
+    height: 100%;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+    height: calc(100% - 56px);
+    position: relative;
+}
+
+.metrics-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.metric-card {
+    background: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+    margin: 0.5rem 0;
+}
+
+.input-group {
+    margin-top: auto;
+    padding: 1rem;
+    background: #fff;
+    border-top: 1px solid #e9ecef;
+}
+
+#message-input {
+    border-radius: 20px;
+    padding: 0.75rem 1.25rem;
+    margin-right: 0.5rem;
+}
+
+#send-button {
+    border-radius: 20px;
+    padding: 0.75rem 1.5rem;
+}
