@@ -1,0 +1,57 @@
+<!-- Tool Contents Component -->
+<div id="additional-portfolio-content" style="display: none;">
+    <!-- Positions Section -->
+    <div id="positions-content" class="portfolio-card tool-content" style="display: none;">
+        <h3>Positions</h3>
+        <div id="positions-data" class="loading">Loading positions...</div>
+    </div>
+
+    <!-- Orders Section -->
+    <div id="orders-content" class="portfolio-card tool-content" style="display: none;">
+        <h3>Recent Orders</h3>
+        <div id="orders-data" class="loading">Loading orders...</div>
+    </div>
+
+    <!-- Trade Section -->
+    <div id="trade-content" class="portfolio-card tool-content" style="display: none;">
+        <h3>Trade</h3>
+        <div id="trade-form">
+            <div class="form-group">
+                <label for="trade-symbol">Symbol</label>
+                <input type="text" id="trade-symbol" class="dark-input" placeholder="e.g., AAPL">
+            </div>
+            <div class="form-group">
+                <label for="trade-type">Order Type</label>
+                <select id="trade-type" class="dark-input">
+                    <option value="market">Market Order</option>
+                    <option value="limit">Limit Order</option>
+                    <option value="stop">Stop Order</option>
+                    <option value="stop_limit">Stop Limit Order</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="trade-side">Side</label>
+                <select id="trade-side" class="dark-input">
+                    <option value="buy">Buy</option>
+                    <option value="sell">Sell</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="trade-quantity">Quantity</label>
+                <input type="number" id="trade-quantity" class="dark-input" min="0" step="1">
+            </div>
+            <button id="submit-trade" class="primary-button">Place Order</button>
+        </div>
+    </div>
+
+    <!-- Analysis Section -->
+    <div id="analysis-content" class="portfolio-card tool-content" style="display: none;">
+        <h3>Technical Analysis</h3>
+        <div class="form-group">
+            <label for="analysis-symbol">Symbol</label>
+            <input type="text" id="analysis-symbol" class="dark-input" placeholder="e.g., AAPL">
+            <button id="analyze-symbol" class="primary-button">Analyze</button>
+        </div>
+        <div id="analysis-data" class="loading" style="display: none;">Loading analysis...</div>
+    </div>
+</div>

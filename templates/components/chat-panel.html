@@ -6,10 +6,21 @@
             <i class="fas fa-cog"></i>
         </a>
     </div>
-    <div id="chat-messages">
+    <div class="chat-messages" id="chat-messages">
         {% if initial_message %}
             <div class="message bot-message">{{ initial_message }}</div>
         {% endif %}
+    </div>
+    <div class="suggested-actions">
+        <div class="actions-title">Quick Actions:</div>
+        <div class="action-buttons">
+            <button class="action-btn" data-action="Get portfolio summary">Portfolio Summary</button>
+            <button class="action-btn" data-action="Get market status">Market Status</button>
+            <button class="action-btn" data-action="Show my positions">My Positions</button>
+            <button class="action-btn" data-action="Show open orders">Open Orders</button>
+            <button class="action-btn" data-action="Show trading tools">Trading Tools</button>
+            <button class="action-btn" data-action="Show analysis tools">Analysis Tools</button>
+        </div>
     </div>
     <div class="chat-input">
         <div class="input-group">

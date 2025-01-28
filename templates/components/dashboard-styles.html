@@ -14,6 +14,17 @@
     --input-bg: #1e1e1e;
     --input-border: #404040;
     --input-focus-border: #007bff;
+    --darker-bg: #2d2d2d;
+    --border-color: #404040;
+    --text-muted: #b3b3b3;
+    --text-color: #ffffff;
+    --primary-color: #007bff;
+    --secondary-bg: #2d2d2d;
+    --primary-bg: #363636;
+    --hover-bg: #2d2d2d;
+    --light-text: #ffffff;
+    --warning-color: #ffc107;
+    --primary-hover: #0056b3;
 }
 
 .dashboard-container {
@@ -28,8 +39,11 @@
     flex: 0 0 50%;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--dark-border);
+    height: 100%;
     background: var(--dark-bg-secondary);
+    border-radius: 8px;
+    overflow: hidden;
+    border-right: 1px solid var(--dark-border);
 }
 
 .portfolio-panel {
@@ -140,6 +154,248 @@
     background: var(--dark-bg-primary);
 }
 
+.suggested-actions {
+    padding: 1rem;
+    background: var(--darker-bg);
+    border-top: 1px solid var(--border-color);
+}
+
+.actions-title {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.action-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.5rem;
+}
+
+.action-btn {
+    background: var(--dark-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+.action-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.portfolio-overview {
+    display: none;
+}
+
+.portfolio-overview.active {
+    display: block;
+}
+
+.portfolio-tools {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    padding: 0.5rem;
+    background: var(--secondary-bg);
+    border-radius: 8px;
+}
+
+.tool-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--primary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tool-button:hover {
+    background: var(--hover-bg);
+}
+
+.tool-button.active {
+    background: var(--primary-color);
+    color: var(--light-text);
+    border-color: var(--primary-color);
+}
+
+.tool-button i {
+    font-size: 1.1rem;
+}
+
+.tool-content {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--secondary-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.positions-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.position-item {
+    background: var(--primary-bg);
+    border-radius: 6px;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.position-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.position-symbol {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.position-details {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.detail .label {
+    color: var(--text-muted);
+}
+
+.orders-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.order-item {
+    background: var(--primary-bg);
+    border-radius: 6px;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.order-symbol {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.order-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.order-status.filled {
+    background: var(--success-color);
+    color: var(--light-text);
+}
+
+.order-status.pending {
+    background: var(--warning-color);
+    color: var(--dark-text);
+}
+
+.order-status.canceled {
+    background: var(--error-color);
+    color: var(--light-text);
+}
+
+.trade-form {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-muted);
+}
+
+.dark-input {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--primary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-color);
+}
+
+.dark-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.primary-button {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--primary-color);
+    color: var(--light-text);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.primary-button:hover {
+    background: var(--primary-hover);
+}
+
+.analysis-form {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+.error-message {
+    color: var(--error-color);
+    text-align: center;
+    padding: 1rem;
+}
+
+.positive {
+    color: var(--success-color);
+}
+
+.negative {
+    color: var(--error-color);
+}
+
 .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -204,15 +460,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 2rem;
-    color: var(--dark-text-secondary);
-    font-style: italic;
 }
 
 .error-message {
