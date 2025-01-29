@@ -9,7 +9,7 @@
 }
 
 /* Chat Section */
-.chat-section, .chat-panel {
+.chat-section {
     flex: 0.4;
     min-width: 280px;
     display: flex;
@@ -18,6 +18,13 @@
     border-radius: 6px;
     overflow: hidden;
     transition: all 0.3s ease;
+}
+
+.chat-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--dark-bg-secondary);
 }
 
 /* Portfolio Section */
@@ -102,6 +109,8 @@
     flex-direction: column;
     gap: 0.5rem;
     background: var(--dark-bg-secondary);
+    margin-bottom: 0;
+    min-height: 0; /* Ensures proper flex behavior */
 }
 
 .message {
@@ -131,19 +140,23 @@
 
 /* Chat Input */
 .chat-input {
-    background: var(--dark-bg-tertiary);
-    border-top: 1px solid var(--dark-border);
+    background: var(--dark-bg-secondary);
+    padding: 0;
 }
 
 .input-group {
     display: flex;
-    gap: 0.35rem;
-    align-items: center;
-    background: var(--dark-bg-secondary);
-    padding: 0.35rem;
+    align-items: stretch;
+    background: var(--dark-bg-tertiary);
     border-radius: 4px;
-    margin: 0.5rem;
-    height: 36px;
+    height: 34px;
+    border: 1px solid var(--dark-border);
+    overflow: hidden;
+    margin: 0.15rem 0.35rem;
+}
+
+.input-group:focus-within {
+    border-color: var(--accent-color);
 }
 
 .dark-input {
@@ -151,9 +164,10 @@
     background: transparent;
     border: none;
     color: var(--dark-text-primary);
-    padding: 0 0.25rem;
+    padding: 0.35rem;
     outline: none;
     font-size: 0.75rem;
+    min-width: 0;
 }
 
 .dark-input::placeholder {
@@ -166,36 +180,35 @@
     opacity: 0;
 }
 
-.btn-dark {
-    background: transparent;
-    color: var(--dark-text-secondary);
+#send-button {
+    background: var(--accent-color);
+    color: var(--dark-text-primary);
     border: none;
-    padding: 0.15rem;
-    border-radius: 3px;
     cursor: pointer;
-    transition: all var(--transition-speed) var(--transition-timing);
+    transition: background-color var(--transition-speed) var(--transition-timing);
     font-size: 0.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    opacity: 0.5;
+    width: 34px;
+    flex-shrink: 0;
 }
 
-.btn-dark:hover {
-    color: var(--accent-color);
-    opacity: 1;
+#send-button:hover {
+    background: var(--accent-color-hover);
+}
+
+#send-button i {
+    font-size: 0.8rem;
 }
 
 /* Quick Actions */
 .quick-actions {
     display: flex;
     gap: 0.5rem;
-    padding: 0.5rem;
-    background: var(--dark-bg-tertiary);
-    border-bottom: 1px solid var(--dark-border);
-    height: 42px;
+    padding: 0.35rem;
+    background: var(--dark-bg-secondary);
+    margin: 0;
 }
 
 .action-category {
@@ -205,7 +218,7 @@
 
 .category-btn {
     width: 100%;
-    background: var(--dark-bg-secondary);
+    background: var(--dark-bg-tertiary);
     color: var(--dark-text-secondary);
     border: 1px solid var(--dark-border);
     padding: 0.5rem 0.75rem;
@@ -234,12 +247,12 @@
 }
 
 .action-category:hover .category-btn i {
-    transform: rotate(-180deg);
+    transform: rotate(180deg);
 }
 
 .sub-actions {
     position: absolute;
-    top: calc(100% + 4px);
+    bottom: calc(100% + 4px);
     left: 0;
     right: 0;
     background: var(--dark-bg-secondary);
@@ -247,7 +260,7 @@
     border-radius: 4px;
     overflow: hidden;
     opacity: 0;
-    transform: translateY(-4px) scale(0.95);
+    transform: translateY(4px) scale(0.95);
     pointer-events: none;
     transition: all var(--transition-speed) var(--transition-timing);
     z-index: 100;
