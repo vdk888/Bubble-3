@@ -5,7 +5,7 @@ import json
 class ChatbotService:
     def __init__(self, api_key: str):
         openai.api_key = api_key
-        self.model = "gpt-4o-mini"
+        self.model = "gpt-4o-mini"  # Restored original model name
         self.conversation_history = []
         self.waiting_for_alpaca_key = False
         self.waiting_for_alpaca_secret = False
@@ -39,113 +39,86 @@ class ChatbotService:
         """
         Process a user message and return both the response and any visual data
         """
-        # Send greeting on first message
-        if not self.greeted and user:
-            self.greeted = True
-            return {
-                "response": self.get_greeting(user),
-                "requires_action": False
-            }
-
-        # Check if we're in the process of collecting Alpaca credentials
-        if self.waiting_for_alpaca_key:
-            self.collected_alpaca_key = user_message
-            self.waiting_for_alpaca_key = False
-            self.waiting_for_alpaca_secret = True
-            return {
-                "response": "Great! Now please provide your Alpaca Secret Key. Don't worry, this will be stored securely in your account.",
-                "requires_action": True
-            }
-        
-        if self.waiting_for_alpaca_secret:
-            self.waiting_for_alpaca_secret = False
-            if user:
-                user.alpaca_api_key = self.collected_alpaca_key
-                user.alpaca_secret_key = user_message
-                self.collected_alpaca_key = None
+        try:
+            # Send greeting on first message
+            if not self.greeted and user:
+                self.greeted = True
                 return {
-                    "response": (
-                        "Perfect! I've saved your Alpaca credentials securely. Now I can help you with all your portfolio needs!\n\n"
-                        "Would you like to:\n"
-                        "• Check your current portfolio value?\n"
-                        "• See your positions?\n"
-                        "• View recent trades?\n"
-                        "Just let me know what interests you!"
-                    ),
-                    "requires_action": False,
-                    "credentials_updated": True
+                    "response": self.get_greeting(user),
+                    "requires_action": False
                 }
 
-        # Handle response to initial greeting or credential request
-        if not user.has_alpaca_credentials() and any(keyword in user_message.lower() for keyword in ["yes", "sure", "okay", "set up", "setup", "proceed", "credentials"]):
-            self.waiting_for_alpaca_key = True
-            return {
-                "response": (
-                    "Excellent! Let's get your Alpaca account connected. First, I'll need your Alpaca API Key. "
-                    "You can find this in your Alpaca dashboard under 'Paper Trading' settings.\n\n"
-                    "Please provide your Alpaca API Key:"
-                ),
-                "requires_action": True
-            }
+            # Check if we're in the process of collecting Alpaca credentials
+            if self.waiting_for_alpaca_key:
+                self.collected_alpaca_key = user_message
+                self.waiting_for_alpaca_key = False
+                self.waiting_for_alpaca_secret = True
+                return {
+                    "response": "Great! Now please provide your Alpaca Secret Key. Don't worry, this will be stored securely in your account.",
+                    "requires_action": True
+                }
+            
+            if self.waiting_for_alpaca_secret:
+                self.waiting_for_alpaca_secret = False
+                if user:
+                    user.alpaca_api_key = self.collected_alpaca_key
+                    user.alpaca_secret_key = user_message
+                    self.collected_alpaca_key = None
+                    return {
+                        "response": (
+                            "Perfect! I've saved your Alpaca credentials securely. Now I can help you with all your portfolio needs!\n\n"
+                            "Would you like to:\n"
+                            "• Check your current portfolio value?\n"
+                            "• See your positions?\n"
+                            "• View recent trades?\n"
+                            "Just let me know what interests you!"
+                        ),
+                        "requires_action": False,
+                        "credentials_updated": True
+                    }
 
-        # Check if the message is about portfolio or trading
-        portfolio_keywords = ["portfolio", "investment", "stock", "trade", "position", "market", "balance", "alpaca"]
-        if any(keyword in user_message.lower() for keyword in portfolio_keywords):
-            if user and not user.has_alpaca_credentials():
+            # Handle response to initial greeting or credential request
+            if user and not user.has_alpaca_credentials() and any(keyword in user_message.lower() for keyword in ["yes", "sure", "okay", "set up", "setup", "proceed", "credentials"]):
                 self.waiting_for_alpaca_key = True
                 return {
-                    "response": (
-                        "I'd love to help you with that! But first, I'll need your Alpaca trading account credentials. "
-                        "These will be stored securely and used to access your portfolio data.\n\n"
-                        "Please provide your Alpaca API Key:"
-                    ),
+                    "response": "Please provide your Alpaca API Key. This will be stored securely in your account.",
                     "requires_action": True
                 }
 
-        # Add the user's message to the conversation history
-        self.conversation_history.append({"role": "user", "content": user_message})
+            # Process normal message with OpenAI
+            messages = self.conversation_history + [{"role": "user", "content": user_message}]
+            response = openai.ChatCompletion.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.7,
+                max_tokens=500
+            )
 
-        try:
-            if any(keyword in user_message.lower() for keyword in portfolio_keywords) and user and user.has_alpaca_credentials():
-                response = (
-                    "I can help you with your portfolio information. What specific information would you like to know?\n\n"
-                    "• Your current portfolio value and cash balance\n"
-                    "• Your positions and their performance\n"
-                    "• Your recent trades\n\n"
-                    "Just let me know what interests you!"
-                )
-            else:
-                # Get response from OpenAI
-                response = openai.chat.completions.create(
-                    model=self.model,
-                    messages=[
-                        {"role": "system", "content": "You are a helpful assistant. When appropriate, you can provide visual data like charts or metrics in JSON format."},
-                        *self.conversation_history
-                    ]
-                )
-                response = response.choices[0].message.content
-            
-            # Check if the response contains visual data (in JSON format)
-            visual_data = self._extract_visual_data(response)
-            
-            # Clean the message if it contains JSON
-            if visual_data:
-                response = self._clean_message(response)
-            
-            # Add assistant response to history
-            self.conversation_history.append({"role": "assistant", "content": response})
-            
+            # Extract the response text
+            bot_response = response.choices[0].message.content
+
+            # Update conversation history
+            self.conversation_history.extend([
+                {"role": "user", "content": user_message},
+                {"role": "assistant", "content": bot_response}
+            ])
+
+            # Keep conversation history manageable
+            if len(self.conversation_history) > 10:
+                self.conversation_history = self.conversation_history[-10:]
+
             return {
-                "response": response,
-                "visual_data": visual_data
+                "response": bot_response,
+                "requires_action": False
             }
-            
+
         except Exception as e:
             return {
-                "error": str(e),
-                "visual_data": None
+                "response": f"I apologize, but I encountered an error: {str(e)}. Please try again.",
+                "requires_action": False,
+                "error": True
             }
-    
+
     def _extract_visual_data(self, message: str) -> Optional[Dict]:
         """
         Extract JSON visual data from the message if present

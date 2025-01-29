@@ -2,3 +2,4 @@ Try to be as modular as possible, and avoid duplicate code.
 Always verify more code and files than you deem necessary, just in case you missed something.
 Never remove code or function if not asked explicitly to do so.
 Always consider the dependencies of the file, and the general consequences of modifications made, because I may not be aware of it.
+Do not ever change the chatbot model names if not required, i know which one i want to use. By default it will be 'gpt-4o-mini'.

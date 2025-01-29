@@ -3,7 +3,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Chat elements
     const chatMessages = document.getElementById('chat-messages');
-    const messageInput = document.getElementById('message-input');
+    const messageInput = document.getElementById('chat-input');
     const sendButton = document.getElementById('send-button');
     const clearButton = document.getElementById('clear-button');
 
@@ -24,6 +24,40 @@ document.addEventListener('DOMContentLoaded', function() {
         text = text.replace(/ALPACA_API_KEY='[^']+'/g, "ALPACA_API_KEY='********'");
         text = text.replace(/ALPACA_SECRET_KEY='[^']+'/g, "ALPACA_SECRET_KEY='********'");
         return text;
+    }
+
+    // Function to store Alpaca credentials
+    async function storeAlpacaCredentials(apiKey, secretKey) {
+        try {
+            const response = await fetch('/api/store_alpaca_credentials', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    alpaca_api_key: apiKey,
+                    alpaca_secret_key: secretKey
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.message) {
+                addBotMessage(`✅ I've detected and securely stored your Alpaca API credentials. I'll help you with:
+                • Real-time portfolio tracking
+                • Trade monitoring
+                • Market analysis
+                • Stock information
+                
+                What would you like to know about?`);
+                
+                // Refresh portfolio data after storing credentials
+                updatePortfolioData();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            addBotMessage(`❌ Sorry, there was an error storing your credentials. Please try again later.`);
+        }
     }
 
     // Function to add a user message
@@ -49,6 +83,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to process the message
     async function processMessage(message) {
         addUserMessage(message);
+
+        // Check for Alpaca API credentials
+        const apiKeyMatch = message.match(/ALPACA_API_KEY='([^']+)'/);
+        const secretKeyMatch = message.match(/ALPACA_SECRET_KEY='([^']+)'/);
+        
+        if (apiKeyMatch && secretKeyMatch) {
+            await storeAlpacaCredentials(apiKeyMatch[1], secretKeyMatch[1]);
+            return;
+        }
 
         try {
             const response = await fetch('/chat', {
@@ -141,6 +184,52 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Function to format currency
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+        }).format(value);
+    }
+
+    // Function to format percentage
+    function formatPercentage(value) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'percent',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value / 100);
+    }
+
+    // Function to update portfolio data
+    async function updatePortfolioData() {
+        try {
+            const response = await fetch('/api/portfolio/metrics');
+            const data = await response.json();
+            
+            if (data.error) {
+                accountSummary.innerHTML = `<div class="error-message">${data.error}</div>`;
+                return;
+            }
+
+            // Update account summary
+            let summaryHtml = '<div class="metrics-grid">';
+            for (const [key, value] of Object.entries(data.metrics)) {
+                summaryHtml += `
+                    <div class="metric-card">
+                        <div class="metric-title">${key}</div>
+                        <div class="metric-value">${value}</div>
+                    </div>`;
+            }
+            summaryHtml += '</div>';
+            accountSummary.innerHTML = summaryHtml;
+            accountSummary.classList.remove('loading');
+        } catch (error) {
+            console.error('Error updating portfolio:', error);
+            accountSummary.innerHTML = '<div class="error-message">Error loading portfolio data. Please check your Alpaca credentials.</div>';
+        }
+    }
+
     // Function to load positions
     async function loadPositions() {
         const positionsData = document.getElementById('positions-data');
@@ -169,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div class="detail">
                                 <span class="label">P/L:</span>
-                                <span class="value ${plClass}">${formatCurrency(position.unrealized_pl)} (${position.unrealized_plpc.toFixed(2)}%)</span>
+                                <span class="value ${plClass}">${formatCurrency(position.unrealized_pl)} (${formatPercentage(position.unrealized_plpc)})</span>
                             </div>
                         </div>
                     </div>`;
@@ -270,83 +359,6 @@ document.addEventListener('DOMContentLoaded', function() {
             • Getting technical analysis
             
             What would you like to know about?`);
-    });
-
-    // Handle action button clicks
-    document.querySelectorAll('.action-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const action = this.dataset.action;
-            messageInput.value = action;
-            sendButton.click();
-            
-            // Close the dropdown by removing focus
-            this.closest('.action-category').blur();
-        });
-    });
-
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.action-category')) {
-            document.querySelectorAll('.sub-actions').forEach(dropdown => {
-                dropdown.style.opacity = '0';
-                dropdown.style.pointerEvents = 'none';
-                dropdown.style.transform = 'translateY(-10px)';
-            });
-        }
-    });
-
-    // Send message function
-    function sendMessage() {
-        const message = messageInput.value.trim();
-        if (message) {
-            // Add user message to chat
-            const userMessageDiv = document.createElement('div');
-            userMessageDiv.className = 'message user-message';
-            userMessageDiv.textContent = message;
-            chatMessages.appendChild(userMessageDiv);
-            
-            // Clear input
-            messageInput.value = '';
-            
-            // Scroll to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            
-            // Send to server
-            fetch('/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message: message })
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Add bot response to chat
-                const botMessageDiv = document.createElement('div');
-                botMessageDiv.className = 'message bot-message';
-                botMessageDiv.textContent = data.response;
-                chatMessages.appendChild(botMessageDiv);
-                
-                // Scroll to bottom
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            });
-        }
-    }
-
-    // Event listeners
-    sendButton.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            sendMessage();
-        }
-    });
-
-    clearButton.addEventListener('click', function() {
-        fetch('/clear_chat', { method: 'POST' })
-            .then(() => {
-                chatMessages.innerHTML = '';
-            });
     });
 
     // Initialize with welcome message

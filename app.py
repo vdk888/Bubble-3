@@ -7,6 +7,8 @@ import os
 from dotenv import load_dotenv
 from services.chatbot import ChatbotService
 from services.portfolio import PortfolioService
+from routes import api
+from models import db, User
 
 # Load environment variables
 load_dotenv()
@@ -26,26 +28,18 @@ os.makedirs(db_dir, exist_ok=True)
 db_path = os.path.join(db_dir, 'users.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 
-db = SQLAlchemy(app)
+# Initialize database and migrations
+db.init_app(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# Register blueprints
+app.register_blueprint(api, url_prefix='/api')
+
 # Initialize services
 chatbot = ChatbotService(os.getenv('OPENAI_API_KEY'))
 portfolio = PortfolioService()
-
-# User Model
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(120), nullable=False)
-    alpaca_api_key = db.Column(db.String(120), nullable=True)
-    alpaca_secret_key = db.Column(db.String(120), nullable=True)
-
-    def has_alpaca_credentials(self):
-        return bool(self.alpaca_api_key and self.alpaca_secret_key)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -112,98 +106,25 @@ def dashboard():
     initial_message = chatbot.get_greeting(current_user)
     return render_template('dashboard.html', initial_message=initial_message)
 
-@app.route('/chat', methods=['GET', 'POST'])
+@app.route('/chat', methods=['POST'])
 @login_required
 def chat():
-    if request.method == 'GET':
-        if not current_user.has_alpaca_credentials():
-            return jsonify({
-                'initial_message': 'Hello! I\'m your AI financial assistant. I notice you haven\'t set up your Alpaca trading account credentials yet. Would you like to set them up now? This will allow me to help you with: • Real-time portfolio tracking • Trade monitoring • Market analysis • Stock information'
-            })
-        else:
-            return jsonify({
-                'initial_message': 'Welcome back! I\'m ready to help you with your portfolio analysis and trading decisions. What would you like to know about?'
-            })
-    
-    message = request.json.get('message', '')
-    response = chatbot.process_message(message, current_user)
-    
-    if response.get('credentials_updated'):
-        db.session.commit()
-    
-    return jsonify(response)
+    try:
+        message = request.json.get('message', '')
+        response = chatbot.process_message(message, current_user)
+        return jsonify(response)
+    except Exception as e:
+        app.logger.error(f"Chat error: {str(e)}")
+        return jsonify({
+            "response": "I apologize, but I encountered an error. Please try again.",
+            "error": True
+        }), 500
 
 @app.route('/chat/clear', methods=['POST'])
 @login_required
 def clear_chat():
     chatbot.clear_history()
     return jsonify({"status": "success"})
-
-@app.route('/api/portfolio/metrics')
-@login_required
-def portfolio_metrics():
-    if not current_user.has_alpaca_credentials():
-        return jsonify({'error': 'Alpaca credentials not configured'}), 400
-    try:
-        portfolio.initialize_with_credentials(current_user.alpaca_api_key, current_user.alpaca_secret_key)
-        return jsonify(portfolio.get_portfolio_summary())
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/api/portfolio/allocation')
-@login_required
-def portfolio_allocation():
-    if not current_user.has_alpaca_credentials():
-        return jsonify({'error': 'Alpaca credentials not configured'}), 400
-    try:
-        portfolio.initialize_with_credentials(current_user.alpaca_api_key, current_user.alpaca_secret_key)
-        return jsonify(portfolio.get_asset_allocation())
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/api/portfolio/performance')
-@login_required
-def portfolio_performance():
-    if not current_user.has_alpaca_credentials():
-        return jsonify({'error': 'Alpaca credentials not configured'}), 400
-    try:
-        portfolio.initialize_with_credentials(current_user.alpaca_api_key, current_user.alpaca_secret_key)
-        return jsonify(portfolio.get_portfolio_history())
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/api/portfolio/trades')
-@login_required
-def portfolio_trades():
-    if not current_user.has_alpaca_credentials():
-        return jsonify({'error': 'Alpaca credentials not configured'}), 400
-    try:
-        portfolio.initialize_with_credentials(current_user.alpaca_api_key, current_user.alpaca_secret_key)
-        trades = portfolio.get_recent_trades()
-        return jsonify({'trades': trades})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/store_alpaca_credentials', methods=['POST'])
-@login_required
-def store_alpaca_credentials():
-    try:
-        data = request.get_json()
-        api_key = data.get('alpaca_api_key')
-        secret_key = data.get('alpaca_secret_key')
-        
-        if not api_key or not secret_key:
-            return jsonify({'error': 'Missing API credentials'}), 400
-        
-        current_user.alpaca_api_key = api_key
-        current_user.alpaca_secret_key = secret_key
-        db.session.commit()
-        
-        return jsonify({'message': 'Credentials stored successfully'}), 200
-        
-    except Exception as e:
-        app.logger.error(f"Error storing credentials: {str(e)}")
-        return jsonify({'error': 'Failed to store credentials'}), 500
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
