@@ -1,7 +1,10 @@
 <!-- Chat Panel Component -->
 <div class="chat-panel">
     <div class="panel-header">
-        <h2>Bubble Invest AI Assistant</h2>
+        <div class="header-content">
+            <i class="fas fa-robot"></i>
+            <span>AI Assistant</span>
+        </div>
         <a href="{{ url_for('settings') }}" class="settings-button">
             <i class="fas fa-cog"></i>
         </a>
@@ -16,41 +19,57 @@
             <div class="action-category" data-category="portfolio">
                 <button class="category-btn">
                     <i class="fas fa-chart-pie"></i>
-                    Portfolio
+                    <span>Portfolio</span>
                 </button>
                 <div class="sub-actions">
-                    <button class="action-btn" data-action="Get portfolio summary">Portfolio Summary</button>
-                    <button class="action-btn" data-action="Show my positions">My Positions</button>
-                    <button class="action-btn" data-action="Show open orders">Open Orders</button>
+                    <button class="action-btn" data-action="portfolio-overview">
+                        <i class="fas fa-eye"></i>
+                        Portfolio Overview
+                    </button>
+                    <button class="action-btn" data-action="portfolio-performance">
+                        <i class="fas fa-chart-line"></i>
+                        Performance Analysis
+                    </button>
                 </div>
             </div>
             <div class="action-category" data-category="market">
                 <button class="category-btn">
-                    <i class="fas fa-chart-line"></i>
-                    Market
+                    <i class="fas fa-globe"></i>
+                    <span>Market</span>
                 </button>
                 <div class="sub-actions">
-                    <button class="action-btn" data-action="Get market status">Market Status</button>
-                    <button class="action-btn" data-action="Show market trends">Market Trends</button>
-                    <button class="action-btn" data-action="Show top movers">Top Movers</button>
+                    <button class="action-btn" data-action="market-overview">
+                        <i class="fas fa-chart-bar"></i>
+                        Market Overview
+                    </button>
+                    <button class="action-btn" data-action="market-news">
+                        <i class="fas fa-newspaper"></i>
+                        Market News
+                    </button>
                 </div>
             </div>
             <div class="action-category" data-category="tools">
                 <button class="category-btn">
                     <i class="fas fa-tools"></i>
-                    Tools
+                    <span>Tools</span>
                 </button>
                 <div class="sub-actions">
-                    <button class="action-btn" data-action="Show trading tools">Trading Tools</button>
-                    <button class="action-btn" data-action="Show analysis tools">Analysis Tools</button>
-                    <button class="action-btn" data-action="Show settings">Settings</button>
+                    <button class="action-btn" data-action="risk-analysis">
+                        <i class="fas fa-shield-alt"></i>
+                        Risk Analysis
+                    </button>
+                    <button class="action-btn" data-action="technical-indicators">
+                        <i class="fas fa-chart-area"></i>
+                        Technical Indicators
+                    </button>
                 </div>
             </div>
         </div>
         <div class="input-group">
-            <input type="text" id="message-input" class="dark-input" placeholder="Type your message...">
-            <button id="send-button" class="btn-dark">Send</button>
-            <button id="clear-button" class="btn-dark secondary">Clear</button>
+            <input type="text" class="dark-input" id="chat-input" placeholder="Type a message..." autocomplete="off">
+            <button class="btn-dark" id="send-button">
+                <i class="fas fa-paper-plane"></i>
+            </button>
         </div>
     </div>
 </div>

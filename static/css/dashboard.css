@@ -65,26 +65,39 @@
 
 /* Panel Components */
 .panel-header {
-    padding: 0.75rem 1rem;
-    background: var(--dark-bg-tertiary);
-    border-bottom: 1px solid var(--dark-border);
+    padding: 0.25rem 0.5rem;
+    background: transparent;
+    border-bottom: 1px solid rgba(var(--dark-border-rgb), 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    height: 24px;
 }
 
-.panel-header h2 {
-    margin: 0;
-    color: var(--dark-text-primary);
-    font-size: 1.1rem;
-    font-weight: 600;
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--dark-text-secondary);
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.header-content i {
+    font-size: 0.7rem;
+}
+
+.header-content span {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
 }
 
 /* Chat Messages */
 #chat-messages, .chat-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -124,17 +137,13 @@
 
 .input-group {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.35rem;
     align-items: center;
     background: var(--dark-bg-secondary);
-    padding: 0.4rem;
-    border-radius: 6px;
+    padding: 0.35rem;
+    border-radius: 4px;
     margin: 0.5rem;
-    transition: box-shadow var(--transition-speed) var(--transition-timing);
-}
-
-.input-group:focus-within {
-    box-shadow: var(--shadow-sm);
+    height: 36px;
 }
 
 .dark-input {
@@ -142,47 +151,41 @@
     background: transparent;
     border: none;
     color: var(--dark-text-primary);
-    padding: 0.4rem;
+    padding: 0 0.25rem;
     outline: none;
-    font-size: 0.9rem;
-    transition: all var(--transition-speed) var(--transition-timing);
+    font-size: 0.75rem;
 }
 
 .dark-input::placeholder {
     color: var(--dark-text-secondary);
-    transition: color var(--transition-speed) var(--transition-timing);
+    opacity: 0.5;
+    transition: opacity var(--transition-speed) var(--transition-timing);
 }
 
 .dark-input:focus::placeholder {
-    color: transparent;
+    opacity: 0;
 }
 
 .btn-dark {
-    background: var(--accent-color);
-    color: var(--dark-text-primary);
+    background: transparent;
+    color: var(--dark-text-secondary);
     border: none;
-    padding: 0.4rem 0.8rem;
-    border-radius: 5px;
+    padding: 0.15rem;
+    border-radius: 3px;
     cursor: pointer;
     transition: all var(--transition-speed) var(--transition-timing);
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    opacity: 0.5;
 }
 
 .btn-dark:hover {
-    background: var(--accent-color-hover);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-}
-
-.btn-dark.secondary {
-    background: var(--dark-bg-tertiary);
-}
-
-.btn-dark.secondary:hover {
-    background: var(--dark-border);
+    color: var(--accent-color);
+    opacity: 1;
 }
 
 /* Quick Actions */
@@ -192,6 +195,7 @@
     padding: 0.5rem;
     background: var(--dark-bg-tertiary);
     border-bottom: 1px solid var(--dark-border);
+    height: 42px;
 }
 
 .action-category {
@@ -202,33 +206,34 @@
 .category-btn {
     width: 100%;
     background: var(--dark-bg-secondary);
-    color: var(--dark-text-primary);
+    color: var(--dark-text-secondary);
     border: 1px solid var(--dark-border);
-    padding: 0.4rem;
-    border-radius: 5px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
     cursor: pointer;
     transition: all var(--transition-speed) var(--transition-timing);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    opacity: 0.8;
+    height: 32px;
+}
+
+.category-btn i {
+    font-size: 0.85rem;
+    transition: transform var(--transition-speed) var(--transition-timing);
 }
 
 .category-btn:hover {
     background: var(--dark-border);
+    opacity: 1;
+    color: var(--accent-color);
     border-color: var(--accent-color);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
 }
 
-.category-btn i {
-    font-size: 0.9rem;
-    transition: transform var(--transition-speed) var(--transition-timing);
-}
-
-.action-category:hover .category-btn i,
-.action-category:focus-within .category-btn i {
+.action-category:hover .category-btn i {
     transform: rotate(-180deg);
 }
 
@@ -239,14 +244,14 @@
     right: 0;
     background: var(--dark-bg-secondary);
     border: 1px solid var(--dark-border);
-    border-radius: 5px;
+    border-radius: 4px;
     overflow: hidden;
     opacity: 0;
-    transform: translateY(-10px) scale(0.95);
+    transform: translateY(-4px) scale(0.95);
     pointer-events: none;
     transition: all var(--transition-speed) var(--transition-timing);
     z-index: 100;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
 }
 
 .action-category:hover .sub-actions,
@@ -259,14 +264,14 @@
 .sub-actions .action-btn {
     width: 100%;
     background: transparent;
-    color: var(--dark-text-primary);
+    color: var(--dark-text-secondary);
     border: none;
     border-bottom: 1px solid var(--dark-border);
     padding: 0.5rem 0.75rem;
     text-align: left;
     cursor: pointer;
     transition: all var(--transition-speed) var(--transition-timing);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -278,14 +283,21 @@
 
 .sub-actions .action-btn:hover {
     background: var(--dark-border);
+    color: var(--dark-text-primary);
     padding-left: 1rem;
+}
+
+.sub-actions .action-btn i {
+    width: 16px;
+    text-align: center;
+    font-size: 0.8rem;
 }
 
 /* Portfolio Content */
 .portfolio-content {
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
     overflow-y: auto;
-    height: calc(100% - 52px);
+    height: calc(100% - 24px);
 }
 
 .portfolio-card {
@@ -329,13 +341,12 @@
 /* Settings Button */
 .settings-button {
     color: var(--dark-text-secondary);
-    font-size: 1.1rem;
-    padding: 0.5rem;
-    border-radius: 4px;
-    transition: all 0.2s;
+    opacity: 0.5;
+    font-size: 0.75rem;
+    transition: all var(--transition-speed) var(--transition-timing);
 }
 
 .settings-button:hover {
-    color: var(--dark-text-primary);
-    background: var(--dark-bg-secondary);
+    opacity: 1;
+    color: var(--accent-color);
 }
