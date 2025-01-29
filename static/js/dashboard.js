@@ -3,6 +3,7 @@ import { ChatModule } from './modules/chatModule.js';
 import { PortfolioModule } from './modules/portfolioModule.js';
 import { ToolsModule } from './modules/toolsModule.js';
 import { ChartModule } from './modules/chartModule.js';
+import { PerformanceModule } from './modules/performanceModule.js';
 import { initializeUIElements } from './modules/uiModule.js';
 
 class Dashboard {
@@ -11,6 +12,7 @@ class Dashboard {
         this.portfolioModule = new PortfolioModule();
         this.toolsModule = new ToolsModule();
         this.chartModule = new ChartModule();
+        this.performanceModule = new PerformanceModule();
     }
 
     initialize() {
@@ -35,6 +37,15 @@ class Dashboard {
         // Handle window unload
         window.addEventListener('beforeunload', () => {
             this.portfolioModule.stopPeriodicUpdates();
+        });
+
+        // Listen for credentials stored event to show performance
+        document.addEventListener('credentialsStored', () => {
+            const performanceSection = document.getElementById('performance-section');
+            if (performanceSection) {
+                performanceSection.style.display = 'block';
+                this.performanceModule.loadPerformanceData('1D');
+            }
         });
     }
 }

@@ -9,7 +9,43 @@
     <div class="portfolio-content">
         <!-- Account Summary -->
         <div class="portfolio-card">
-            <h3>Account Summary</h3>
+            <div class="card-header">
+                <h3>Account Summary</h3>
+                <button id="toggle-performance" class="toggle-btn">
+                    <i class="fas fa-chart-area"></i>
+                    Performance
+                </button>
+            </div>
+            
+            <!-- Performance Graph Section (Hidden by default) -->
+            <div id="performance-section" class="performance-section slide-section" style="display: none;">
+                <div class="timeframe-controls">
+                    <button class="timeframe-btn active" data-timeframe="1D">1D</button>
+                    <button class="timeframe-btn" data-timeframe="1W">1W</button>
+                    <button class="timeframe-btn" data-timeframe="1M">1M</button>
+                    <button class="timeframe-btn" data-timeframe="3M">3M</button>
+                    <button class="timeframe-btn" data-timeframe="1Y">1Y</button>
+                    <button class="timeframe-btn" data-timeframe="ALL">ALL</button>
+                </div>
+                <div class="performance-chart-container">
+                    <canvas id="performance-chart"></canvas>
+                </div>
+                <div class="performance-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Return</span>
+                        <span class="stat-value" id="total-return">0.00%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Period High</span>
+                        <span class="stat-value" id="period-high">$0.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Period Low</span>
+                        <span class="stat-value" id="period-low">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
             <div id="account-summary" class="metrics-grid">
                 <div class="metric-card">
                     <div class="metric-title">Buying Power</div>

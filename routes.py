@@ -272,3 +272,27 @@ def place_trade():
     except Exception as e:
         current_app.logger.error(f"Error placing trade: {str(e)}")
         return jsonify({'error': 'Failed to place trade'}), 500
+
+@api.route('/portfolio/history', methods=['GET'])
+@login_required
+def get_portfolio_history():
+    try:
+        portfolio_service = get_portfolio_service()
+        if not portfolio_service:
+            return jsonify({'error': 'Alpaca API credentials not set'}), 401
+
+        # Get timeframe parameters
+        timeframe = request.args.get('timeframe', '1H')
+        period = request.args.get('period', '1D')
+
+        # Get portfolio history directly from Alpaca service
+        history = portfolio_service.alpaca.get_portfolio_history(timeframe=timeframe, period=period)
+        
+        # Log history data for debugging
+        current_app.logger.info(f"Portfolio history data: {history}")
+        
+        return jsonify(history), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error getting portfolio history: {str(e)}")
+        return jsonify({'error': 'Failed to get portfolio history'}), 500
