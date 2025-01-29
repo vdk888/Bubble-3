@@ -9,7 +9,7 @@ class ChatbotService:
             api_key=api_key,
             base_url="https://api.openai.com/v1"  # Explicitly set the base URL
         )
-        self.model = "gpt-3.5-turbo"  # Using a valid OpenAI model
+        self.model = "gpt-4o-mini"  # Using a valid OpenAI model
         self.conversation_history = [
             {
                 "role": "system",
