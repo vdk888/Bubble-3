@@ -35,6 +35,9 @@ export class ToolsModule {
             case 'show_analysis':
                 this.showTool('analysis');
                 break;
+            case 'show_custom_portfolio':
+                this.showTool('custom-portfolio');
+                break;
             case 'place_order':
                 this.handleOrderPlacement(action.data);
                 break;
@@ -96,6 +99,9 @@ export class ToolsModule {
                 break;
             case 'analysis':
                 this.initializeAnalysisForm();
+                break;
+            case 'custom-portfolio':
+                this.showCustomPortfolioMessage();
                 break;
         }
     }
@@ -490,5 +496,16 @@ export class ToolsModule {
                     </div>
                 </div>
             </div>`;
+    }
+
+    showCustomPortfolioMessage() {
+        const customPortfolioData = document.getElementById('custom-portfolio-data');
+        if (customPortfolioData) {
+            customPortfolioData.innerHTML = `
+                <div class="coming-soon-message">
+                    <h3>🚀 Coming Soon!</h3>
+                    <p>Our customized portfolio feature is currently under development. Stay tuned for personalized portfolio management tools!</p>
+                </div>`;
+        }
     }
 } 

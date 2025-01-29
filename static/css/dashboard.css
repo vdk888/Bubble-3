@@ -363,3 +363,49 @@
     opacity: 1;
     color: var(--accent-color);
 }
+
+/* Customized Portfolio Button */
+.tool-button.premium {
+    background: linear-gradient(135deg, #6b46c1 0%, #9f7aea 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.15s ease;
+}
+
+.tool-button.premium:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+    background: linear-gradient(135deg, #805ad5 0%, #b794f4 100%);
+}
+
+.tool-button.premium:active {
+    transform: translateY(1px);
+}
+
+.tool-button.premium::after {
+    content: "✨";
+    margin-left: 8px;
+}
+
+/* Coming Soon Message */
+.coming-soon-message {
+    text-align: center;
+    padding: 2rem;
+    background: rgba(107, 70, 193, 0.1);
+    border-radius: 8px;
+    margin: 1rem;
+}
+
+.coming-soon-message h3 {
+    color: #9f7aea;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.coming-soon-message p {
+    color: #718096;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
