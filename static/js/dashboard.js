@@ -20,11 +20,8 @@ class Dashboard {
         initializeUIElements();
 
         // Initialize all modules
-        this.chatModule.initialize();
+        this.chatModule.initialize();  // This will handle the greeting internally
         this.portfolioModule.initialize();
-
-        // Show initial greeting
-        this.chatModule.showInitialGreeting();
 
         // Setup event listeners for action buttons
         document.addEventListener('actionSelected', (event) => {

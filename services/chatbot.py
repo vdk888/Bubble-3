@@ -4,12 +4,22 @@ import json
 
 class ChatbotService:
     def __init__(self, api_key: str):
-        openai.api_key = api_key
-        self.model = "gpt-4o-mini"  # Restored original model name
-        self.conversation_history = []
-        self.waiting_for_alpaca_key = False
-        self.waiting_for_alpaca_secret = False
-        self.collected_alpaca_key = None
+        from openai import OpenAI  # Import at function level
+        self.client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.openai.com/v1"  # Explicitly set the base URL
+        )
+        self.model = "gpt-3.5-turbo"  # Using a valid OpenAI model
+        self.conversation_history = [
+            {
+                "role": "system",
+                "content": """You are an AI financial assistant helping users manage their investment portfolio.
+                You can help with portfolio analysis, market trends, and trading strategies.
+                Be professional but friendly, and always provide clear, actionable insights.
+                If you don't know something, admit it and suggest alternatives.
+                Keep responses concise but informative."""
+            }
+        ]
         self.greeted = False
 
     def get_greeting(self, user):
@@ -36,76 +46,53 @@ class ChatbotService:
             )
 
     def process_message(self, user_message: str, user=None) -> Dict[str, Any]:
-        """
-        Process a user message and return both the response and any visual data
-        """
+        """Process a user message and return the response"""
         try:
-            # Send greeting on first message
-            if not self.greeted and user:
+            # Special initialization message
+            if user_message == "__init__":
                 self.greeted = True
                 return {
                     "response": self.get_greeting(user),
                     "requires_action": False
                 }
 
-            # Check if we're in the process of collecting Alpaca credentials
-            if self.waiting_for_alpaca_key:
-                self.collected_alpaca_key = user_message
-                self.waiting_for_alpaca_key = False
-                self.waiting_for_alpaca_secret = True
-                return {
-                    "response": "Great! Now please provide your Alpaca Secret Key. Don't worry, this will be stored securely in your account.",
-                    "requires_action": True
-                }
-            
-            if self.waiting_for_alpaca_secret:
-                self.waiting_for_alpaca_secret = False
-                if user:
-                    user.alpaca_api_key = self.collected_alpaca_key
-                    user.alpaca_secret_key = user_message
-                    self.collected_alpaca_key = None
-                    return {
-                        "response": (
-                            "Perfect! I've saved your Alpaca credentials securely. Now I can help you with all your portfolio needs!\n\n"
-                            "Would you like to:\n"
-                            "• Check your current portfolio value?\n"
-                            "• See your positions?\n"
-                            "• View recent trades?\n"
-                            "Just let me know what interests you!"
-                        ),
-                        "requires_action": False,
-                        "credentials_updated": True
-                    }
+            # Add user context
+            if user and user.has_alpaca_credentials():
+                context = "The user has Alpaca trading account credentials set up and can perform portfolio operations."
+            else:
+                context = "The user has not set up their Alpaca trading account credentials yet."
 
-            # Handle response to initial greeting or credential request
-            if user and not user.has_alpaca_credentials() and any(keyword in user_message.lower() for keyword in ["yes", "sure", "okay", "set up", "setup", "proceed", "credentials"]):
-                self.waiting_for_alpaca_key = True
-                return {
-                    "response": "Please provide your Alpaca API Key. This will be stored securely in your account.",
-                    "requires_action": True
-                }
+            # Add context and user message to conversation
+            self.conversation_history.append({
+                "role": "system",
+                "content": context
+            })
+            self.conversation_history.append({
+                "role": "user",
+                "content": user_message
+            })
 
-            # Process normal message with OpenAI
-            messages = self.conversation_history + [{"role": "user", "content": user_message}]
-            response = openai.ChatCompletion.create(
+            # Get response from OpenAI using new API format
+            response = self.client.chat.completions.create(
                 model=self.model,
-                messages=messages,
+                messages=self.conversation_history,
                 temperature=0.7,
                 max_tokens=500
             )
 
-            # Extract the response text
+            # Extract and store response using new response format
             bot_response = response.choices[0].message.content
-
-            # Update conversation history
-            self.conversation_history.extend([
-                {"role": "user", "content": user_message},
-                {"role": "assistant", "content": bot_response}
-            ])
+            self.conversation_history.append({
+                "role": "assistant",
+                "content": bot_response
+            })
 
             # Keep conversation history manageable
             if len(self.conversation_history) > 10:
-                self.conversation_history = self.conversation_history[-10:]
+                # Keep first system message and last 9 messages
+                self.conversation_history = [
+                    self.conversation_history[0]  # Keep initial system message
+                ] + self.conversation_history[-9:]  # Keep last 9 messages
 
             return {
                 "response": bot_response,
@@ -113,8 +100,9 @@ class ChatbotService:
             }
 
         except Exception as e:
+            print(f"Error in process_message: {str(e)}")  # Log the error
             return {
-                "response": f"I apologize, but I encountered an error: {str(e)}. Please try again.",
+                "response": "I apologize, but I encountered an error. Please try again.",
                 "requires_action": False,
                 "error": True
             }
@@ -144,11 +132,6 @@ class ChatbotService:
         return message.strip()
 
     def clear_history(self):
-        """
-        Clear the conversation history
-        """
-        self.conversation_history = []
-        self.waiting_for_alpaca_key = False
-        self.waiting_for_alpaca_secret = False
-        self.collected_alpaca_key = None
+        """Clear the conversation history"""
+        self.conversation_history = [self.conversation_history[0]]  # Keep only the initial system message
         self.greeted = False
