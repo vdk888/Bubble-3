@@ -190,10 +190,15 @@ export class ToolsModule {
     }
 
     renderPositionsChart(canvas, positions) {
+        // Sort positions by market value in descending order
+        const sortedPositions = [...positions].sort((a, b) => 
+            parseFloat(b.market_value) - parseFloat(a.market_value)
+        );
+
         const chartData = {
-            labels: positions.map(p => p.symbol),
-            values: positions.map(p => parseFloat(p.market_value)),
-            colors: positions.map((_, i) => getChartColor(i))
+            labels: sortedPositions.map(p => p.symbol),
+            values: sortedPositions.map(p => parseFloat(p.market_value)),
+            colors: sortedPositions.map((_, i) => getChartColor(i))
         };
 
         const totalValue = chartData.values.reduce((a, b) => a + b, 0);
