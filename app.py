@@ -37,9 +37,8 @@ login_manager.login_view = 'login'
 # Register blueprints
 app.register_blueprint(api, url_prefix='/api')
 
-# Initialize services
+# Initialize chatbot service
 chatbot = ChatbotService(os.getenv('OPENAI_API_KEY'))
-portfolio = PortfolioService()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -134,11 +133,24 @@ def settings():
         alpaca_secret_key = request.form.get('alpaca_secret_key')
         
         if alpaca_api_key and alpaca_secret_key:
-            current_user.alpaca_api_key = alpaca_api_key
-            current_user.alpaca_secret_key = alpaca_secret_key
-            db.session.commit()
-            flash('API credentials updated successfully')
-            return redirect(url_for('settings'))
+            try:
+                # Test credentials by initializing portfolio service
+                portfolio_service = PortfolioService()
+                portfolio_service.initialize_with_credentials(alpaca_api_key, alpaca_secret_key)
+                # This will throw an error if credentials are invalid
+                portfolio_service.alpaca.get_account_info()
+                
+                # Save credentials if test was successful
+                current_user.alpaca_api_key = alpaca_api_key
+                current_user.alpaca_secret_key = alpaca_secret_key
+                db.session.commit()
+                
+                flash('API credentials updated and validated successfully')
+                return redirect(url_for('settings'))
+            except Exception as e:
+                app.logger.error(f"Error validating Alpaca credentials: {str(e)}")
+                flash('Invalid API credentials. Please check and try again.')
+                return redirect(url_for('settings'))
     
     return render_template('settings.html')
 

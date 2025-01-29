@@ -22,22 +22,30 @@ class PortfolioService:
 
     def refresh_data(self):
         """Refresh all portfolio data from Alpaca"""
-        self.account_info = self.alpaca.get_account_info()
-        self.positions = self.alpaca.get_positions()
-        self.portfolio_history = self.alpaca.get_portfolio_history()
+        try:
+            self.account_info = self.alpaca.get_account_info()
+            self.positions = self.alpaca.get_positions()
+            self.portfolio_history = self.alpaca.get_portfolio_history()
+            print("Refreshed account info:", self.account_info)  # Debug print
+        except Exception as e:
+            print(f"Error refreshing data: {str(e)}")
+            raise
 
     def get_portfolio_summary(self):
         """Get the main portfolio metrics"""
         if not self.account_info:
             raise ValueError("Portfolio not initialized. Please configure Alpaca credentials.")
             
+        # Debug print to verify data
+        print("Account info for metrics:", self.account_info)
+            
         return {
             'type': 'metrics',
             'metrics': {
-                'Total Value': f"${self.account_info['portfolio_value']:,.2f}",
-                'Daily Change': f"{self.account_info['day_change_percent']:+.2f}%",
-                'Cash Available': f"${self.account_info['cash']:,.2f}",
-                'Buying Power': f"${self.account_info['buying_power']:,.2f}"
+                'Buying Power': self.account_info['buying_power'],
+                'Cash Available': self.account_info['cash'],
+                'Daily Change': self.account_info['day_change_percent'],
+                'Total Value': self.account_info['portfolio_value']
             }
         }
 

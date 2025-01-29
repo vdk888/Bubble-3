@@ -2,24 +2,25 @@ from flask import Blueprint, jsonify, request, current_app
 from flask_login import current_user, login_required
 from models import db, User
 import alpaca_trade_api as tradeapi
+from services.portfolio import PortfolioService
+import re
 
 api = Blueprint('api', __name__)
 
-def get_alpaca_api():
-    if not current_user.alpaca_api_key or not current_user.alpaca_secret_key:
+def get_portfolio_service():
+    """Get initialized portfolio service with user credentials"""
+    if not current_user.has_alpaca_credentials():
         return None
+    
     try:
-        alpaca = tradeapi.REST(
+        portfolio_service = PortfolioService()
+        portfolio_service.initialize_with_credentials(
             current_user.alpaca_api_key,
-            current_user.alpaca_secret_key,
-            'https://paper-api.alpaca.markets',
-            api_version='v2'
+            current_user.alpaca_secret_key
         )
-        # Test the connection
-        alpaca.get_account()
-        return alpaca
+        return portfolio_service
     except Exception as e:
-        current_app.logger.error(f"Error connecting to Alpaca API: {str(e)}")
+        current_app.logger.error(f"Error initializing portfolio service: {str(e)}")
         return None
 
 @api.route('/store_alpaca_credentials', methods=['POST'])
@@ -30,65 +31,111 @@ def store_alpaca_credentials():
         api_key = data.get('alpaca_api_key')
         secret_key = data.get('alpaca_secret_key')
         
+        # Validate input
         if not api_key or not secret_key:
-            return jsonify({'error': 'Missing API credentials'}), 400
+            current_app.logger.error('Missing API credentials')
+            return jsonify({'error': 'Both API key and secret key are required'}), 400
             
-        # Test the credentials before saving
-        test_api = tradeapi.REST(
-            api_key,
-            secret_key,
-            'https://paper-api.alpaca.markets',
-            api_version='v2'
-        )
-        test_api.get_account()  # This will throw an error if credentials are invalid
-        
-        current_user.save_alpaca_credentials(api_key, secret_key)
-        return jsonify({'message': 'Credentials stored successfully'}), 200
+        # Validate format
+        if not re.match(r'^[A-Z0-9]{32}$', api_key) or not re.match(r'^[A-Z0-9]{64}$', secret_key):
+            current_app.logger.error('Invalid credential format')
+            return jsonify({'error': 'Invalid credential format. Please check your API key and secret key.'}), 400
+            
+        # Test the credentials
+        try:
+            portfolio_service = PortfolioService()
+            portfolio_service.initialize_with_credentials(api_key, secret_key)
+            account_info = portfolio_service.alpaca.get_account_info()
+            
+            if not account_info:
+                raise ValueError('Could not retrieve account information')
+                
+            # Save credentials only after successful validation
+            current_user.save_alpaca_credentials(api_key, secret_key)
+            db.session.commit()
+            
+            # Format metrics from account info
+            metrics = {
+                'Buying Power': float(account_info['buying_power']),
+                'Cash Available': float(account_info['cash']),
+                'Daily Change': float(account_info['day_change_percent']),
+                'Total Value': float(account_info['portfolio_value'])
+            }
+            
+            current_app.logger.info('Credentials validated and stored successfully')
+            
+            return jsonify({
+                'message': 'Credentials validated and stored successfully',
+                'metrics': metrics
+            }), 200
+            
+        except Exception as e:
+            current_app.logger.error(f'Error validating credentials: {str(e)}')
+            return jsonify({'error': 'Invalid credentials. Please check your API key and secret key.'}), 400
         
     except Exception as e:
-        current_app.logger.error(f"Error storing credentials: {str(e)}")
-        return jsonify({'error': 'Failed to store credentials. Please check if they are valid.'}), 500
+        current_app.logger.error(f'Error in credential storage: {str(e)}')
+        return jsonify({'error': 'An unexpected error occurred. Please try again.'}), 500
 
 @api.route('/portfolio/metrics', methods=['GET'])
 @login_required
 def get_portfolio_metrics():
     try:
-        api = get_alpaca_api()
-        if not api:
+        current_app.logger.info('Getting portfolio metrics...')
+        
+        if not current_user.has_alpaca_credentials():
+            current_app.logger.info('No Alpaca credentials found')
             return jsonify({'error': 'Alpaca API credentials not set'}), 401
 
-        account = api.get_account()
-        metrics = {
-            'Buying Power': f"${float(account.buying_power):.2f}",
-            'Cash Available': f"${float(account.cash):.2f}",
-            'Daily Change': f"{float(account.portfolio_value) - float(account.last_equity):.2f}%",
-            'Total Value': f"${float(account.portfolio_value):.2f}"
-        }
+        portfolio_service = PortfolioService()
+        try:
+            portfolio_service.initialize_with_credentials(
+                current_user.alpaca_api_key,
+                current_user.alpaca_secret_key
+            )
+        except Exception as e:
+            current_app.logger.error(f'Error initializing portfolio service: {str(e)}')
+            return jsonify({'error': 'Invalid credentials. Please check your Alpaca API key and secret key.'}), 401
         
-        return jsonify({'metrics': metrics}), 200
+        try:
+            account_info = portfolio_service.alpaca.get_account_info()
+            
+            if not account_info:
+                raise ValueError('Could not retrieve account information')
+                
+            metrics = {
+                'Buying Power': float(account_info['buying_power']),
+                'Cash Available': float(account_info['cash']),
+                'Daily Change': float(account_info['day_change_percent']),
+                'Total Value': float(account_info['portfolio_value'])
+            }
+            
+            current_app.logger.info('Successfully retrieved portfolio metrics')
+            return jsonify({'metrics': metrics}), 200
+            
+        except Exception as e:
+            current_app.logger.error(f'Error getting account info: {str(e)}')
+            return jsonify({'error': 'Failed to retrieve portfolio information'}), 500
 
     except Exception as e:
-        current_app.logger.error(f"Error getting portfolio metrics: {str(e)}")
-        return jsonify({'error': 'Failed to get portfolio metrics'}), 500
+        current_app.logger.error(f'Error in get_portfolio_metrics: {str(e)}')
+        return jsonify({'error': 'An unexpected error occurred'}), 500
 
 @api.route('/portfolio/positions', methods=['GET'])
 @login_required
 def get_positions():
     try:
-        api = get_alpaca_api()
-        if not api:
+        portfolio_service = get_portfolio_service()
+        if not portfolio_service:
             return jsonify({'error': 'Alpaca API credentials not set'}), 401
 
-        positions = api.list_positions()
-        positions_data = [{
-            'symbol': pos.symbol,
-            'qty': pos.qty,
-            'market_value': float(pos.market_value),
-            'unrealized_pl': float(pos.unrealized_pl),
-            'unrealized_plpc': float(pos.unrealized_plpc) * 100
-        } for pos in positions]
+        # Get positions directly from alpaca service
+        positions = portfolio_service.alpaca.get_positions()
         
-        return jsonify({'positions': positions_data}), 200
+        # Log positions data for debugging
+        current_app.logger.info(f"Positions data: {positions}")
+        
+        return jsonify({'positions': positions}), 200
 
     except Exception as e:
         current_app.logger.error(f"Error getting positions: {str(e)}")
@@ -98,32 +145,78 @@ def get_positions():
 @login_required
 def get_orders():
     try:
-        api = get_alpaca_api()
-        if not api:
+        portfolio_service = get_portfolio_service()
+        if not portfolio_service:
             return jsonify({'error': 'Alpaca API credentials not set'}), 401
 
-        orders = api.list_orders(status='all', limit=10)
-        orders_data = [{
-            'symbol': order.symbol,
-            'side': order.side,
-            'type': order.type,
-            'qty': order.qty,
-            'status': order.status,
-            'submitted_at': order.submitted_at.isoformat()
-        } for order in orders]
+        # Get recent trades using alpaca service directly
+        trades = portfolio_service.alpaca.get_recent_trades(limit=10)
         
-        return jsonify({'orders': orders_data}), 200
+        # Format the trades for frontend display
+        formatted_trades = []
+        for trade in trades:
+            formatted_trades.append({
+                'symbol': trade['symbol'],
+                'side': trade['side'],
+                'type': trade['type'],
+                'qty': trade['qty'],
+                'status': trade['status'],
+                'submitted_at': trade['submitted_at'].isoformat() if trade['submitted_at'] else None,
+                'filled_at': trade['filled_at'].isoformat() if trade['filled_at'] else None,
+                'filled_qty': trade['filled_qty'],
+                'filled_avg_price': trade['filled_avg_price']
+            })
+        
+        return jsonify({'orders': formatted_trades}), 200
 
     except Exception as e:
         current_app.logger.error(f"Error getting orders: {str(e)}")
         return jsonify({'error': 'Failed to get orders'}), 500
 
+@api.route('/portfolio/analysis', methods=['GET'])
+@login_required
+def get_analysis():
+    try:
+        portfolio_service = get_portfolio_service()
+        if not portfolio_service:
+            return jsonify({'error': 'Alpaca API credentials not set'}), 401
+
+        symbol = request.args.get('symbol')
+        if not symbol:
+            return jsonify({'error': 'Symbol parameter is required'}), 400
+
+        try:
+            # Get latest quote
+            quote = portfolio_service.alpaca.data_client.get_stock_latest_quote(symbol)
+            current_price = float(quote.ask_price)
+
+            # Get technical indicators
+            analysis = {
+                'symbol': symbol,
+                'current_price': current_price,
+                'indicators': {
+                    'price': current_price,
+                    'change_24h': quote.ask_price - quote.bid_price,
+                    'volume': quote.ask_size,
+                }
+            }
+            
+            return jsonify(analysis), 200
+            
+        except Exception as e:
+            current_app.logger.error(f"Error analyzing {symbol}: {str(e)}")
+            return jsonify({'error': f'Failed to analyze {symbol}'}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Error in get_analysis: {str(e)}")
+        return jsonify({'error': 'Failed to get analysis'}), 500
+
 @api.route('/portfolio/trade', methods=['POST'])
 @login_required
 def place_trade():
     try:
-        api = get_alpaca_api()
-        if not api:
+        portfolio_service = get_portfolio_service()
+        if not portfolio_service:
             return jsonify({'error': 'Alpaca API credentials not set'}), 401
 
         data = request.get_json()
@@ -135,13 +228,41 @@ def place_trade():
         if not all([symbol, qty, side, type]):
             return jsonify({'error': 'Missing required trade parameters'}), 400
 
-        order = api.submit_order(
-            symbol=symbol,
-            qty=qty,
-            side=side,
-            type=type,
-            time_in_force='day'
-        )
+        # Create proper order request based on type
+        order_params = {
+            'symbol': symbol,
+            'qty': float(qty),
+            'side': side,
+            'time_in_force': 'day'
+        }
+
+        if type.lower() == 'market':
+            order_params['type'] = 'market'
+        elif type.lower() == 'limit':
+            limit_price = data.get('limit_price')
+            if not limit_price:
+                return jsonify({'error': 'Missing limit price for limit order'}), 400
+            order_params['type'] = 'limit'
+            order_params['limit_price'] = float(limit_price)
+        elif type.lower() == 'stop':
+            stop_price = data.get('stop_price')
+            if not stop_price:
+                return jsonify({'error': 'Missing stop price for stop order'}), 400
+            order_params['type'] = 'stop'
+            order_params['stop_price'] = float(stop_price)
+        elif type.lower() == 'stop_limit':
+            stop_price = data.get('stop_price')
+            limit_price = data.get('limit_price')
+            if not stop_price or not limit_price:
+                return jsonify({'error': 'Missing stop price or limit price for stop limit order'}), 400
+            order_params['type'] = 'stop_limit'
+            order_params['stop_price'] = float(stop_price)
+            order_params['limit_price'] = float(limit_price)
+        else:
+            return jsonify({'error': 'Unsupported order type'}), 400
+
+        # Submit the order with the constructed parameters
+        order = portfolio_service.alpaca.client.submit_order(**order_params)
         
         return jsonify({
             'message': 'Order placed successfully',

@@ -243,9 +243,18 @@
     border: 1px solid var(--border-color);
 }
 
+.positions-visualization {
+    height: 300px;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--dark-bg-tertiary);
+    border-radius: 8px;
+}
+
 .positions-list {
     display: grid;
     gap: 1rem;
+    margin-top: 1rem;
 }
 
 .position-item {
@@ -312,18 +321,42 @@
     font-size: 0.9rem;
 }
 
+/* Order status styles */
+.order-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    text-transform: capitalize;
+}
+
 .order-status.filled {
     background: var(--success-color);
     color: var(--light-text);
 }
 
+.order-status.new, 
+.order-status.accepted, 
 .order-status.pending {
     background: var(--warning-color);
     color: var(--dark-text);
 }
 
-.order-status.canceled {
+.order-status.canceled,
+.order-status.expired,
+.order-status.rejected,
+.order-status.suspended {
     background: var(--error-color);
+    color: var(--light-text);
+}
+
+.order-status.partially_filled {
+    background: var(--accent-color);
+    color: var(--light-text);
+}
+
+.order-status.done_for_day,
+.order-status.replaced {
+    background: var(--text-muted);
     color: var(--light-text);
 }
 

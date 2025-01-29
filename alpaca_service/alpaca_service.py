@@ -45,22 +45,33 @@ class AlpacaService:
         self._client = None  # Force client recreation with new credentials
         self._data_client = None  # Force data client recreation with new credentials
 
-    def get_account_info(self) -> Dict:
-        """Get account information including cash balance and portfolio value."""
-        account = self.client.get_account()
-        return {
-            'cash': float(account.cash),
-            'portfolio_value': float(account.portfolio_value),
-            'buying_power': float(account.buying_power),
-            'equity': float(account.equity),
-            'long_market_value': float(account.long_market_value),
-            'short_market_value': float(account.short_market_value),
-            'initial_margin': float(account.initial_margin),
-            'maintenance_margin': float(account.maintenance_margin),
-            'last_equity': float(account.last_equity),
-            'day_change': float(account.equity) - float(account.last_equity),
-            'day_change_percent': ((float(account.equity) - float(account.last_equity)) / float(account.last_equity) * 100) if float(account.last_equity) != 0 else 0
-        }
+    def get_account_info(self) -> dict:
+        """Get current account information."""
+        print("Getting account info from Alpaca...")
+        try:
+            account = self.client.get_account()
+            
+            # Convert Decimal values to float for JSON serialization
+            account_info = {
+                'cash': float(account.cash),
+                'portfolio_value': float(account.portfolio_value),
+                'buying_power': float(account.buying_power),
+                'equity': float(account.equity),
+                'long_market_value': float(account.long_market_value),
+                'short_market_value': float(account.short_market_value),
+                'initial_margin': float(account.initial_margin),
+                'maintenance_margin': float(account.maintenance_margin),
+                'last_equity': float(account.last_equity),
+                'day_change': float(account.equity) - float(account.last_equity),
+                'day_change_percent': ((float(account.equity) - float(account.last_equity)) / float(account.last_equity)) * 100 if float(account.last_equity) != 0 else 0
+            }
+            
+            print("Account info retrieved:", account_info)
+            return account_info
+            
+        except Exception as e:
+            print(f"Error getting account info: {str(e)}")
+            raise
 
     def get_positions(self) -> List[Dict]:
         """Get current positions with latest market data."""
