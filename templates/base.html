@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %} - Bubble Invest</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
     <style>
         :root {
             --dark-bg-primary: #1a1a1a;
@@ -17,6 +18,11 @@
             --accent-color-hover: #0056b3;
             --error-color: #dc3545;
             --success-color: #28a745;
+            --transition-speed: 0.2s;
+            --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 8px 12px rgba(0, 0, 0, 0.1);
         }
         
         * {

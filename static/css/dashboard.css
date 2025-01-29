@@ -1,113 +1,341 @@
+/* Dashboard Layout */
 .dashboard-container {
     display: flex;
-    gap: 20px;
-    height: calc(100vh - 150px);
-    padding: 20px;
-    margin-top: -1rem;
+    height: calc(100vh - 56px);
+    background: var(--dark-bg-primary);
+    margin: 0;
+    padding: 15px;
+    gap: 1px;
 }
 
-.chat-section {
-    flex: 1;
-    min-width: 0;
+/* Chat Section */
+.chat-section, .chat-panel {
+    flex: 0.4;
+    min-width: 280px;
+    display: flex;
+    flex-direction: column;
+    background: var(--dark-bg-secondary);
+    border-radius: 6px;
+    overflow: hidden;
     transition: all 0.3s ease;
 }
 
+/* Portfolio Section */
 .side-panel {
-    width: 0;
+    flex: 0.6;
+    background: var(--dark-bg-secondary);
+    border-radius: 6px;
     overflow: hidden;
     transition: all 0.3s ease;
 }
 
 .side-panel.active {
-    width: 40%;
-    min-width: 400px;
+    width: auto;
+    min-width: 480px;
 }
 
-.chat-section.with-panel {
-    flex: 0.6;
+/* Modern Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
-#chat-messages {
-    height: 100%;
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Hide scrollbar when not in use */
+*::-webkit-scrollbar-thumb {
+    transition: background 0.2s;
+    background: transparent;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Panel Components */
+.panel-header {
+    padding: 0.75rem 1rem;
+    background: var(--dark-bg-tertiary);
+    border-bottom: 1px solid var(--dark-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-header h2 {
+    margin: 0;
+    color: var(--dark-text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Chat Messages */
+#chat-messages, .chat-messages {
+    flex: 1;
     overflow-y: auto;
-    padding: 1rem;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: var(--dark-bg-secondary);
 }
 
 .message {
-    margin-bottom: 1rem;
-    max-width: 80%;
-    padding: 0.8rem 1.2rem;
-    border-radius: 1rem;
-    position: relative;
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.8rem;
+    max-width: 85%;
+    word-wrap: break-word;
+    line-height: 1.4;
+    font-size: 0.9rem;
 }
 
+.message.user-message,
 .message.user {
     margin-left: auto;
-    background-color: #007bff;
-    color: white;
-    border-radius: 1rem 1rem 0 1rem;
+    background-color: var(--accent-color);
+    color: var(--dark-text-primary);
+    border-radius: 0.8rem 0.8rem 0 0.8rem;
 }
 
+.message.bot-message,
 .message.assistant {
     margin-right: auto;
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 1rem 1rem 1rem 0;
+    background-color: var(--dark-bg-tertiary);
+    color: var(--dark-text-primary);
+    border-radius: 0.8rem 0.8rem 0.8rem 0;
 }
 
-#visual-content {
-    overflow-y: auto;
-    height: 100%;
-}
-
-.card {
-    margin: 0;
-    height: 100%;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-}
-
-.card-body {
-    height: calc(100% - 56px);
-    position: relative;
-}
-
-.metrics-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    padding: 1rem;
-}
-
-.metric-card {
-    background: #fff;
-    padding: 1rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    text-align: center;
-}
-
-.metric-value {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #007bff;
-    margin: 0.5rem 0;
+/* Chat Input */
+.chat-input {
+    background: var(--dark-bg-tertiary);
+    border-top: 1px solid var(--dark-border);
 }
 
 .input-group {
-    margin-top: auto;
-    padding: 1rem;
-    background: #fff;
-    border-top: 1px solid #e9ecef;
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    background: var(--dark-bg-secondary);
+    padding: 0.4rem;
+    border-radius: 6px;
+    margin: 0.5rem;
+    transition: box-shadow var(--transition-speed) var(--transition-timing);
 }
 
-#message-input {
-    border-radius: 20px;
-    padding: 0.75rem 1.25rem;
-    margin-right: 0.5rem;
+.input-group:focus-within {
+    box-shadow: var(--shadow-sm);
 }
 
-#send-button {
-    border-radius: 20px;
-    padding: 0.75rem 1.5rem;
+.dark-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--dark-text-primary);
+    padding: 0.4rem;
+    outline: none;
+    font-size: 0.9rem;
+    transition: all var(--transition-speed) var(--transition-timing);
+}
+
+.dark-input::placeholder {
+    color: var(--dark-text-secondary);
+    transition: color var(--transition-speed) var(--transition-timing);
+}
+
+.dark-input:focus::placeholder {
+    color: transparent;
+}
+
+.btn-dark {
+    background: var(--accent-color);
+    color: var(--dark-text-primary);
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-timing);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.btn-dark:hover {
+    background: var(--accent-color-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-dark.secondary {
+    background: var(--dark-bg-tertiary);
+}
+
+.btn-dark.secondary:hover {
+    background: var(--dark-border);
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--dark-bg-tertiary);
+    border-bottom: 1px solid var(--dark-border);
+}
+
+.action-category {
+    position: relative;
+    flex: 1;
+}
+
+.category-btn {
+    width: 100%;
+    background: var(--dark-bg-secondary);
+    color: var(--dark-text-primary);
+    border: 1px solid var(--dark-border);
+    padding: 0.4rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-timing);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.category-btn:hover {
+    background: var(--dark-border);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.category-btn i {
+    font-size: 0.9rem;
+    transition: transform var(--transition-speed) var(--transition-timing);
+}
+
+.action-category:hover .category-btn i,
+.action-category:focus-within .category-btn i {
+    transform: rotate(-180deg);
+}
+
+.sub-actions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--dark-bg-secondary);
+    border: 1px solid var(--dark-border);
+    border-radius: 5px;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+    pointer-events: none;
+    transition: all var(--transition-speed) var(--transition-timing);
+    z-index: 100;
+    box-shadow: var(--shadow-md);
+}
+
+.action-category:hover .sub-actions,
+.action-category:focus-within .sub-actions {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: all;
+}
+
+.sub-actions .action-btn {
+    width: 100%;
+    background: transparent;
+    color: var(--dark-text-primary);
+    border: none;
+    border-bottom: 1px solid var(--dark-border);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-timing);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sub-actions .action-btn:last-child {
+    border-bottom: none;
+}
+
+.sub-actions .action-btn:hover {
+    background: var(--dark-border);
+    padding-left: 1rem;
+}
+
+/* Portfolio Content */
+.portfolio-content {
+    padding: 0.75rem;
+    overflow-y: auto;
+    height: calc(100% - 52px);
+}
+
+.portfolio-card {
+    background: var(--dark-bg-tertiary);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.portfolio-card h3 {
+    margin: 0 0 0.75rem 0;
+    color: var(--dark-text-primary);
+    font-size: 1rem;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.metric-card {
+    background: var(--dark-bg-secondary);
+    padding: 0.75rem;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.metric-title {
+    color: var(--dark-text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+}
+
+.metric-value {
+    color: var(--dark-text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Settings Button */
+.settings-button {
+    color: var(--dark-text-secondary);
+    font-size: 1.1rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.settings-button:hover {
+    color: var(--dark-text-primary);
+    background: var(--dark-bg-secondary);
 }

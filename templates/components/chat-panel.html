@@ -11,18 +11,42 @@
             <div class="message bot-message">{{ initial_message }}</div>
         {% endif %}
     </div>
-    <div class="suggested-actions">
-        <div class="actions-title">Quick Actions:</div>
-        <div class="action-buttons">
-            <button class="action-btn" data-action="Get portfolio summary">Portfolio Summary</button>
-            <button class="action-btn" data-action="Get market status">Market Status</button>
-            <button class="action-btn" data-action="Show my positions">My Positions</button>
-            <button class="action-btn" data-action="Show open orders">Open Orders</button>
-            <button class="action-btn" data-action="Show trading tools">Trading Tools</button>
-            <button class="action-btn" data-action="Show analysis tools">Analysis Tools</button>
-        </div>
-    </div>
     <div class="chat-input">
+        <div class="quick-actions">
+            <div class="action-category" data-category="portfolio">
+                <button class="category-btn">
+                    <i class="fas fa-chart-pie"></i>
+                    Portfolio
+                </button>
+                <div class="sub-actions">
+                    <button class="action-btn" data-action="Get portfolio summary">Portfolio Summary</button>
+                    <button class="action-btn" data-action="Show my positions">My Positions</button>
+                    <button class="action-btn" data-action="Show open orders">Open Orders</button>
+                </div>
+            </div>
+            <div class="action-category" data-category="market">
+                <button class="category-btn">
+                    <i class="fas fa-chart-line"></i>
+                    Market
+                </button>
+                <div class="sub-actions">
+                    <button class="action-btn" data-action="Get market status">Market Status</button>
+                    <button class="action-btn" data-action="Show market trends">Market Trends</button>
+                    <button class="action-btn" data-action="Show top movers">Top Movers</button>
+                </div>
+            </div>
+            <div class="action-category" data-category="tools">
+                <button class="category-btn">
+                    <i class="fas fa-tools"></i>
+                    Tools
+                </button>
+                <div class="sub-actions">
+                    <button class="action-btn" data-action="Show trading tools">Trading Tools</button>
+                    <button class="action-btn" data-action="Show analysis tools">Analysis Tools</button>
+                    <button class="action-btn" data-action="Show settings">Settings</button>
+                </div>
+            </div>
+        </div>
         <div class="input-group">
             <input type="text" id="message-input" class="dark-input" placeholder="Type your message...">
             <button id="send-button" class="btn-dark">Send</button>
