@@ -64,7 +64,7 @@ class ChatbotService:
         self.portfolio_service = None
         self.yahoo_finance = YahooFinanceService()
 
-    def _validate_alpaca_key(self, key: str, key_type: str = "api") -> bool:
+    def _validate_alpaca_key(self, key: str, key_type: str) -> bool:
         """Validate Alpaca key format"""
         if key_type == "api":
             return bool(re.match(r'^PK[A-Z0-9]{16,}$', key))
@@ -73,17 +73,16 @@ class ChatbotService:
         return False
 
     def _validate_alpaca_credentials(self, api_key: str, secret_key: str) -> bool:
-        """Validate Alpaca credentials by making a test API call"""
+        """Validate Alpaca credentials against the API"""
         try:
-            import requests
-            headers = {
-                'APCA-API-KEY-ID': api_key,
-                'APCA-API-SECRET-KEY': secret_key
-            }
-            response = requests.get('https://paper-api.alpaca.markets/v2/account', headers=headers)
-            return response.status_code == 200
+            # Try to initialize portfolio service with these credentials
+            temp_portfolio = PortfolioService()
+            temp_portfolio.initialize_with_credentials(api_key, secret_key)
+            # Test the connection
+            temp_portfolio.get_positions()
+            return True
         except Exception as e:
-            print(f"Error validating Alpaca credentials: {str(e)}")
+            print(f"Credential validation failed: {str(e)}")
             return False
 
     def _detect_alpaca_keys(self, message: str) -> dict:
@@ -142,49 +141,6 @@ class ChatbotService:
                 "or set them up in the settings page. What would you prefer?"
             )
 
-    def analyze_portfolio(self, positions: list) -> Dict[str, Any]:
-        """Analyze portfolio positions and get AI insights"""
-        # Format positions data for the AI
-        portfolio_prompt = (
-            "Please analyze this investment portfolio and provide insights about:\n"
-            "1. Asset allocation and diversification\n"
-            "2. Any concentration risks\n"
-            "3. Quick recommendations\n\n"
-            "Portfolio positions:\n"
-        )
-        
-        for position in positions:
-            portfolio_prompt += (
-                f"- {position['symbol']}: {position['qty']} shares "
-                f"at ${position['current_price']:.2f} "
-                f"(Market Value: ${position['market_value']:.2f})\n"
-            )
-
-        # Add to conversation history
-        self.conversation_history.append({
-            "role": "user",
-            "content": portfolio_prompt
-        })
-
-        # Get AI analysis
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=self.conversation_history,
-            temperature=0.7,
-            max_tokens=1800
-        )
-
-        bot_response = response.choices[0].message.content
-        self.conversation_history.append({
-            "role": "assistant",
-            "content": bot_response
-        })
-
-        return {
-            "response": bot_response,
-            "requires_action": False
-        }
-
     def initialize_portfolio_service(self, api_key, secret_key):
         """Initialize portfolio service with user credentials"""
         try:
@@ -208,231 +164,50 @@ class ChatbotService:
             self.portfolio_service = None
             raise
 
-    def _send_progress(self, message):
-        """Helper method to send progress updates"""
-        print(f"Progress: {message}")  # For debugging
-        return {
-            "response": message,
-            "requires_action": False,
-            "in_progress": True,
-            "show_typing": True  # Add this flag to keep the typing animation
-        }
-
-    def analyze_portfolio_performance(self):
-        """Analyze portfolio performance across multiple timeframes and compare with benchmarks"""
-        if not self.portfolio_service:
-            return {
-                "response": "I need access to your Alpaca credentials to analyze your portfolio performance.",
-                "requires_action": True
-            }
-
-        try:
-            # Create a list to store all progress messages
-            progress_messages = []
-            
-            def add_progress(message):
-                """Add a progress message to the list"""
-                progress_messages.append(message)
-                return {
-                    "response": message,
-                    "requires_action": False,
-                    "in_progress": True,
-                    "show_typing": True,
-                    "progress_messages": progress_messages  # Include all progress messages so far
-                }
-
-            # Start the analysis process
-            progress_response = add_progress("Starting portfolio performance analysis...")
-            
-            timeframes = {
-                '1M': {'period': '1mo', 'interval': '1d'},
-                '1Y': {'period': '1y', 'interval': '1d'}
-            }
-            
-            performance_data = {}
-            spy = yf.Ticker("SPY")
-            
-            # Get current positions for individual asset analysis
-            progress_response = add_progress("Fetching current portfolio positions...")
-            positions = self.portfolio_service.alpaca.get_positions()
-            asset_performance = {}
-            
-            # Calculate individual asset performance
-            for position in positions:
-                symbol = position['symbol']
-                progress_response = add_progress(f"Processing {symbol}...")
-                ticker = yf.Ticker(symbol)
-                asset_performance[symbol] = {
-                    'weight': float(position['market_value']) / float(position['current_price']),
-                    'performance': {}
-                }
-                
-                for timeframe, params in timeframes.items():
-                    history = ticker.history(period=params['period'], interval=params['interval'])
-                    if len(history) >= 2:
-                        start_price = history['Close'].iloc[0]
-                        end_price = history['Close'].iloc[-1]
-                        if start_price > 0:
-                            return_pct = ((end_price / start_price) * 100) - 100
-                            asset_performance[symbol]['performance'][timeframe] = return_pct
-            
-            progress_response = add_progress("Calculating portfolio performance across timeframes...")
-            for timeframe, params in timeframes.items():
-                progress_response = add_progress(f"Analyzing {timeframe} performance...")
-                # Get portfolio performance
-                portfolio_history = self.portfolio_service.alpaca.get_portfolio_history(timeframe=timeframe)
-                
-                if not portfolio_history or 'equity' not in portfolio_history:
-                    continue
-                
-                # Filter out zero and None values
-                equity_values = [v for v in portfolio_history['equity'] if v is not None and v > 0]
-                
-                if len(equity_values) < 2:
-                    continue
-                    
-                # Find the first non-zero value for base calculation
-                base_value = equity_values[0]
-                if base_value <= 0:  # Additional safety check
-                    continue
-                    
-                # Calculate return based on base 100
-                start_value = 100  # Start at base 100
-                end_value = (equity_values[-1] / base_value) * 100
-                portfolio_return = end_value - start_value
-                
-                progress_response = add_progress(f"Comparing with S&P 500 benchmark for {timeframe}...")
-                # Get benchmark data and normalize to base 100
-                try:
-                    benchmark = spy.history(period=params['period'], interval=params['interval'])
-                    if len(benchmark) < 2:
-                        add_progress(f"Warning: Insufficient S&P 500 data for {timeframe}. Skipping benchmark comparison...")
-                        performance_data[timeframe] = {
-                            'portfolio_return': portfolio_return,
-                            'start_value': base_value,
-                            'end_value': equity_values[-1],
-                            'benchmark_return': None,  # No benchmark data available
-                            'asset_returns': {symbol: data['performance'].get(timeframe) 
-                                        for symbol, data in asset_performance.items() 
-                                        if timeframe in data['performance']}
-                        }
-                        continue
-                        
-                    benchmark_start = benchmark['Close'].iloc[0]
-                    if benchmark_start <= 0:  # Safety check for benchmark data
-                        add_progress(f"Warning: Invalid S&P 500 data for {timeframe}. Skipping benchmark comparison...")
-                        continue
-                        
-                    benchmark_end = (benchmark['Close'].iloc[-1] / benchmark_start) * 100
-                    benchmark_return = benchmark_end - 100
-                    
-                    performance_data[timeframe] = {
-                        'portfolio_return': portfolio_return,
-                        'start_value': base_value,
-                        'end_value': equity_values[-1],
-                        'benchmark_return': benchmark_return,
-                        'asset_returns': {symbol: data['performance'].get(timeframe) 
-                                    for symbol, data in asset_performance.items() 
-                                    if timeframe in data['performance']}
-                    }
-                except Exception as e:
-                    add_progress(f"Warning: Error getting S&P 500 data for {timeframe}. Skipping benchmark comparison...")
-                    performance_data[timeframe] = {
-                        'portfolio_return': portfolio_return,
-                        'start_value': base_value,
-                        'end_value': equity_values[-1],
-                        'benchmark_return': None,  # Error getting benchmark data
-                        'asset_returns': {symbol: data['performance'].get(timeframe) 
-                                    for symbol, data in asset_performance.items() 
-                                    if timeframe in data['performance']}
-                    }
-
-            if not performance_data:
-                return {
-                    "response": "I couldn't retrieve enough performance data to provide a meaningful analysis.",
-                    "requires_action": False
-                }
-
-            progress_response = add_progress("Preparing detailed performance analysis...")
-            # Prepare detailed analysis prompt for GPT
-            analysis_prompt = self._prepare_performance_analysis_prompt(performance_data, asset_performance)
-            
-            progress_response = add_progress("Generating AI insights...")
-            # Get AI analysis
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are a professional portfolio analyst. Analyze the provided portfolio performance data and provide insights about:
-                        1. Overall portfolio performance across different timeframes
-                        2. Individual asset contributions and performance
-                        3. Comparison with benchmark (S&P 500)
-                        4. Specific recommendations based on the data
-                        Be specific with numbers but keep the analysis easy to understand."""
-                    },
-                    {
-                        "role": "user",
-                        "content": analysis_prompt
-                    }
-                ],
-                temperature=0.7,
-                max_tokens=800
-            )
-
-            # Return the final analysis
-            excel_data = self._generate_performance_excel(performance_data, asset_performance)
-            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-            
-            return {
-                "response": response.choices[0].message.content,
-                "requires_action": False,
-                "in_progress": False,
-                "show_typing": False,  # Final message, hide typing animation
-                "progress_messages": progress_messages,  # Include all progress messages
-                "has_attachment": True,
-                "attachment": {
-                    "data": excel_data,
-                    "filename": f"portfolio_analysis_{current_time}.xlsx",
-                    "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                }
-            }
-
-        except Exception as e:
-            print(f"Error analyzing portfolio performance: {str(e)}")
-            return {
-                "response": "I encountered an error while analyzing your portfolio performance. Please try again later.",
-                "requires_action": False,
-                "error": True
-            }
-
-    def _prepare_performance_analysis_prompt(self, performance_data, asset_performance):
-        """Prepare a detailed prompt for GPT analysis"""
-        prompt = "Please analyze this portfolio performance data:\n\n"
-        
-        # Add timeframe performance data
-        for timeframe, data in performance_data.items():
-            prompt += f"\n{timeframe} Performance:\n"
-            prompt += f"- Portfolio Return: {data['portfolio_return']:.2f}%\n"
-            prompt += f"- S&P 500 Return: {data['benchmark_return']:.2f}%\n"
-            prompt += "- Individual Asset Returns:\n"
-            
-            # Add individual asset performance
-            for symbol, return_value in data['asset_returns'].items():
-                weight = asset_performance[symbol]['weight']
-                prompt += f"  • {symbol} (Weight: {weight:.2f}%): {return_value:.2f}%\n"
-        
-        prompt += "\nPlease provide:\n"
-        prompt += "1. A detailed analysis of the portfolio's performance across all timeframes\n"
-        prompt += "2. Insights about which assets are driving performance (both positive and negative)\n"
-        prompt += "3. Specific recommendations based on the performance data\n"
-        prompt += "4. Any notable trends or patterns in the data\n"
-        
-        return prompt
 
     def process_message(self, user_message: str, user=None) -> Dict[str, Any]:
         """Process a user message and return the response"""
         try:
+            # Check for API keys in the message
+            api_key_match = re.search(r'PK[A-Z0-9]{16,}', user_message)
+            secret_key_match = re.search(r'[A-Za-z0-9]{32,}', user_message)
+
+            if api_key_match and secret_key_match:
+                api_key = api_key_match.group()
+                secret_key = secret_key_match.group()
+                
+                try:
+                    # Validate the credentials
+                    if self._validate_alpaca_credentials(api_key, secret_key):
+                        if user:
+                            # Save credentials to user profile
+                            user.save_alpaca_credentials(api_key, secret_key)
+                            # Initialize portfolio service with new credentials
+                            self.initialize_portfolio_service(api_key, secret_key)
+                            return {
+                                "response": "✅ Great! I've successfully saved your Alpaca credentials. "
+                                          "Now I can help you manage your portfolio and provide detailed market insights. "
+                                          "What would you like to know about?",
+                                "requires_action": False
+                            }
+                        else:
+                            return {
+                                "response": "✅ Those credentials look valid, but I couldn't save them because you're not logged in. "
+                                          "Please log in or sign up to save your credentials.",
+                                "requires_action": True
+                            }
+                    else:
+                        return {
+                            "response": "❌ Those credentials appear to be invalid. Please check your Alpaca API key and Secret key and try again.",
+                            "requires_action": True
+                        }
+                except Exception as e:
+                    print(f"Error validating credentials: {str(e)}")
+                    return {
+                        "response": "❌ I encountered an error while validating your credentials. Please try again or use the settings page.",
+                        "requires_action": True
+                    }
+
             # Check if we have a user and if they have Alpaca credentials
             if user and user.has_alpaca_credentials() and not self.portfolio_service:
                 try:
@@ -748,48 +523,6 @@ class ChatbotService:
         except Exception as e:
             print(f"Error generating Excel file: {str(e)}")
             raise
-
-    def _detect_price_data_request(self, message: str) -> Optional[Dict]:
-        """Detect if the message is requesting price data"""
-        # Pattern for price requests
-        price_patterns = [
-            r'(?i)(?:get|show|what(?:\'s)?|how?s? (?:is|are))?\s*(?:the)?\s*(?:price|prices|chart|data)\s+(?:for|of)?\s+([A-Za-z0-9,\s]+)',
-            r'(?i)([A-Za-z0-9]+)\s+(?:price|chart|data)',
-            r'(?i)how\s+is\s+([A-Za-z0-9]+)\s+(?:doing|performing)',
-        ]
-        
-        # Pattern for timeframes
-        timeframe_patterns = {
-            r'(?i)last\s+(\d+)\s*(day|week|month|year)s?': lambda m: f"{m.group(1)}{m.group(2)[0]}",
-            r'(?i)(today|daily)': lambda m: "1d",
-            r'(?i)(week|weekly)': lambda m: "1wk",
-            r'(?i)(month|monthly)': lambda m: "1mo",
-            r'(?i)(year|yearly)': lambda m: "1y",
-        }
-        
-        # Check for price request
-        symbols = None
-        for pattern in price_patterns:
-            match = re.search(pattern, message)
-            if match:
-                symbols = [s.strip().upper() for s in match.group(1).split(',')]
-                break
-        
-        if not symbols:
-            return None
-        
-        # Check for timeframe
-        timeframe = "1mo"  # default
-        for pattern, timeframe_func in timeframe_patterns.items():
-            match = re.search(pattern, message)
-            if match:
-                timeframe = timeframe_func(match)
-                break
-            
-        return {
-            'symbols': symbols,
-            'timeframe': timeframe
-        }
 
     def _handle_price_data_request(self, request: Dict) -> Dict:
         """Handle a price data request"""
