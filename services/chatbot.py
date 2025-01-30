@@ -332,12 +332,21 @@ class ChatbotService:
             )
 
             # Return the final analysis
+            excel_data = self._generate_performance_excel(performance_data, asset_performance)
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
             return {
                 "response": response.choices[0].message.content,
                 "requires_action": False,
                 "in_progress": False,
                 "show_typing": False,  # Final message, hide typing animation
-                "progress_messages": progress_messages  # Include all progress messages
+                "progress_messages": progress_messages,  # Include all progress messages
+                "has_attachment": True,
+                "attachment": {
+                    "data": excel_data,
+                    "filename": f"portfolio_analysis_{current_time}.xlsx",
+                    "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                }
             }
 
         except Exception as e:
@@ -530,3 +539,68 @@ class ChatbotService:
     def clear_history(self):
         """Clear the conversation history"""
         self.conversation_history = [self.conversation_history[0]]  # Keep only the initial system message
+
+    def _generate_performance_excel(self, performance_data, asset_performance):
+        """Generate an Excel file containing the performance analysis data"""
+        try:
+            import pandas as pd
+            import io
+
+            output = io.BytesIO()
+            
+            # Create a Pandas Excel writer
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                # Summary sheet
+                summary_data = []
+                for timeframe, data in performance_data.items():
+                    summary_data.append({
+                        'Timeframe': timeframe,
+                        'Portfolio Return (%)': data['portfolio_return'],
+                        'S&P 500 Return (%)': data['benchmark_return'] if data['benchmark_return'] is not None else 'N/A',
+                        'Start Value ($)': data['start_value'],
+                        'End Value ($)': data['end_value']
+                    })
+                
+                if summary_data:
+                    summary_df = pd.DataFrame(summary_data)
+                    summary_df.to_excel(writer, sheet_name='Summary', index=False)
+                
+                # Asset Performance sheet for each timeframe
+                for timeframe, data in performance_data.items():
+                    asset_data = []
+                    for symbol, return_value in data['asset_returns'].items():
+                        weight = asset_performance[symbol]['weight']
+                        asset_data.append({
+                            'Symbol': symbol,
+                            'Weight (%)': weight,
+                            f'Return ({timeframe}) (%)': return_value if return_value is not None else 'N/A'
+                        })
+                    
+                    if asset_data:
+                        asset_df = pd.DataFrame(asset_data)
+                        asset_df.to_excel(writer, sheet_name=f'{timeframe} Details', index=False)
+                        
+                        # Get the xlsxwriter workbook and worksheet objects
+                        workbook = writer.book
+                        worksheet = writer.sheets[f'{timeframe} Details']
+                        
+                        # Add some formatting
+                        header_format = workbook.add_format({
+                            'bold': True,
+                            'bg_color': '#2d2d2d',
+                            'font_color': 'white',
+                            'border': 1
+                        })
+                        
+                        # Write the column headers with the header format
+                        for col_num, value in enumerate(asset_df.columns.values):
+                            worksheet.write(0, col_num, value, header_format)
+                            worksheet.set_column(col_num, col_num, 15)  # Set column width
+            
+            # Reset pointer and return bytes
+            output.seek(0)
+            return output.getvalue()
+            
+        except Exception as e:
+            print(f"Error generating Excel file: {str(e)}")
+            raise

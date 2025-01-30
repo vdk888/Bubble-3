@@ -126,12 +126,14 @@ export class ChatModule {
 
             // Check if this is a portfolio performance request
             if (message === 'portfolio-performance') {
+                console.log('Sending portfolio performance request...'); // Debug log
                 response = await fetch('/api/portfolio/performance', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     }
                 });
+                console.log('Portfolio performance response status:', response.status); // Debug log
             } else {
                 // Regular chat message
                 response = await fetch('/chat', {
@@ -149,6 +151,7 @@ export class ChatModule {
             }
 
             data = await response.json();
+            console.log('Response data:', data); // Debug log
             
             if (data.error) {
                 this.hideTypingIndicator();
@@ -170,6 +173,52 @@ export class ChatModule {
                     }
                     this.hideTypingIndicator();
                     this.addBotMessage(data.response);
+
+                    // Handle file attachment if present
+                    if (data.has_attachment && data.attachment) {
+                        console.log('Attachment found, creating download button...'); // Debug log
+                        // Create container for download button
+                        const downloadContainer = document.createElement('div');
+                        downloadContainer.className = 'download-container';
+                        
+                        // Create download button
+                        const downloadBtn = document.createElement('button');
+                        downloadBtn.className = 'download-btn';
+                        downloadBtn.innerHTML = '<i class="fas fa-file-excel"></i> Download Performance Data (Excel)';
+                        downloadBtn.onclick = () => {
+                            try {
+                                this.downloadAttachment(data.attachment);
+                                // Add success indicator
+                                downloadBtn.innerHTML = '<i class="fas fa-check"></i> Downloaded Successfully!';
+                                setTimeout(() => {
+                                    downloadBtn.innerHTML = '<i class="fas fa-file-excel"></i> Download Performance Data (Excel)';
+                                }, 2000);
+                            } catch (error) {
+                                console.error('Error downloading file:', error);
+                                downloadBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Download Failed - Try Again';
+                                setTimeout(() => {
+                                    downloadBtn.innerHTML = '<i class="fas fa-file-excel"></i> Download Performance Data (Excel)';
+                                }, 2000);
+                            }
+                        };
+                        
+                        downloadContainer.appendChild(downloadBtn);
+                        
+                        // Find the last bot message
+                        const messages = Array.from(this.chatMessages.children);
+                        const lastBotMessage = messages.reverse().find(msg => msg.classList.contains('bot-message') && !msg.classList.contains('progress-message'));
+                        
+                        if (lastBotMessage) {
+                            lastBotMessage.appendChild(downloadContainer);
+                            // Ensure the new content is visible
+                            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                            console.log('Download button added to message'); // Debug log
+                        } else {
+                            console.error('No suitable bot message found to append download button'); // Debug log
+                        }
+                    } else {
+                        console.log('No attachment found in response'); // Debug log
+                    }
                 }
             }
 
@@ -239,6 +288,45 @@ export class ChatModule {
         // Store progress message reference if needed
         if (isProgress) {
             this._lastProgressMessage = message;
+        }
+    }
+
+    downloadAttachment(attachment) {
+        try {
+            // Validate attachment data
+            if (!attachment || !attachment.data || !attachment.filename) {
+                throw new Error('Invalid attachment data');
+            }
+
+            // Convert base64 to blob
+            const byteCharacters = atob(attachment.data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { 
+                type: attachment.content_type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = attachment.filename;
+            document.body.appendChild(a);
+            
+            // Trigger download
+            a.click();
+            
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            return true;
+        } catch (error) {
+            console.error('Error in downloadAttachment:', error);
+            throw error;
         }
     }
 

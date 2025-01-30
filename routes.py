@@ -388,8 +388,19 @@ def analyze_portfolio_performance():
         )
         
         # Get the analysis with progress updates
-        progress_response = chatbot.analyze_portfolio_performance()
-        return jsonify(progress_response)
+        response_data = chatbot.analyze_portfolio_performance()
+        
+        # If there's an attachment, encode it as base64
+        if response_data.get('has_attachment') and response_data.get('attachment'):
+            import base64
+            attachment = response_data['attachment']
+            if isinstance(attachment.get('data'), bytes):
+                attachment['data'] = base64.b64encode(attachment['data']).decode('utf-8')
+            current_app.logger.info('Attachment data encoded successfully')
+        else:
+            current_app.logger.warning('No attachment data found in response')
+        
+        return jsonify(response_data)
 
     except Exception as e:
         current_app.logger.error(f"Error analyzing performance: {str(e)}")

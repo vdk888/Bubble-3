@@ -27,7 +27,7 @@ class Dashboard {
         document.addEventListener('actionSelected', (event) => {
             if (this.chatModule.messageInput) {
                 this.chatModule.messageInput.value = event.detail;
-                this.chatModule.processMessage(event.detail);
+                this.chatModule.sendMessage(event.detail);
             }
         });
 

@@ -17,7 +17,17 @@ export class QuickActionsModule {
         document.querySelectorAll('.action-btn').forEach(button => {
             const action = button.dataset.action;
             if (this.actionHandlers[action]) {
-                button.addEventListener('click', this.actionHandlers[action]);
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Quick action clicked:', action); // Debug log
+                    this.actionHandlers[action]();
+                    // Hide the sub-actions after clicking
+                    const subActions = button.closest('.sub-actions');
+                    if (subActions) {
+                        subActions.style.display = 'none';
+                    }
+                });
             }
         });
 

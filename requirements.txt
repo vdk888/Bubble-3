@@ -10,3 +10,5 @@ alpaca-py==0.10.0
 matplotlib==3.8.2
 flask_migrate==3.1.0
 yfinance==0.2.36
+pandas==2.1.1
+xlsxwriter==3.1.2
