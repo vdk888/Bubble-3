@@ -171,7 +171,7 @@ class ChatbotService:
             model=self.model,
             messages=self.conversation_history,
             temperature=0.7,
-            max_tokens=800
+            max_tokens=1800
         )
 
         bot_response = response.choices[0].message.content
@@ -874,7 +874,10 @@ class ChatbotService:
         response = ["📊 Current Portfolio Positions:\n"]
         total_value = sum(position['market_value'] for position in positions)
 
-        for position in positions:
+        # Sort positions by market value in descending order
+        sorted_positions = sorted(positions, key=lambda x: x['market_value'], reverse=True)
+
+        for position in sorted_positions:
             allocation = (position['market_value'] / total_value * 100) if total_value > 0 else 0
             pl_class = "profit" if position['unrealized_pl'] >= 0 else "loss"
             
