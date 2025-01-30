@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 import os
 import sys
+import requests
+from typing import List, Dict, Any
 
 # Get the parent directory path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -193,3 +195,35 @@ class PortfolioService:
         except Exception as e:
             print(f"Error getting trades: {str(e)}")
             return []
+
+def get_positions(api_key: str, secret_key: str) -> List[Dict[str, Any]]:
+    """Get current positions from Alpaca"""
+    headers = {
+        'APCA-API-KEY-ID': api_key,
+        'APCA-API-SECRET-KEY': secret_key
+    }
+    
+    response = requests.get(
+        'https://paper-api.alpaca.markets/v2/positions',
+        headers=headers
+    )
+    
+    if response.status_code != 200:
+        raise Exception("Failed to fetch positions from Alpaca")
+        
+    positions = response.json()
+    
+    # Format positions data
+    formatted_positions = []
+    for pos in positions:
+        formatted_positions.append({
+            'symbol': pos['symbol'],
+            'qty': float(pos['qty']),
+            'current_price': float(pos['current_price']),
+            'market_value': float(pos['market_value']),
+            'avg_entry_price': float(pos['avg_entry_price']),
+            'unrealized_pl': float(pos['unrealized_pl']),
+            'unrealized_plpc': float(pos['unrealized_plpc'])
+        })
+    
+    return formatted_positions

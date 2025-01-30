@@ -10,12 +10,17 @@ class ChatbotService:
             api_key=api_key,
             base_url="https://api.openai.com/v1"  # Explicitly set the base URL
         )
-        self.model = "gpt-4o-mini"  # Using a valid OpenAI model
+        self.model = "gpt-4-turbo-preview"  # Updated to latest model
         self.conversation_history = [
             {
                 "role": "system",
                 "content": """You are an AI financial assistant helping users manage their investment portfolio.
                 You can help with portfolio analysis, market trends, and trading strategies.
+                When analyzing portfolios:
+                - Break down asset allocation by type (stocks, bonds, etc.)
+                - Highlight diversification metrics
+                - Point out any concentration risks
+                - Suggest potential optimizations
                 Be professional but friendly, and always provide clear, actionable insights.
                 If you don't know something, admit it and suggest alternatives.
                 Keep responses concise but informative."""
@@ -100,9 +105,64 @@ class ChatbotService:
                 "or set them up in the settings page. What would you prefer?"
             )
 
+    def analyze_portfolio(self, positions: list) -> Dict[str, Any]:
+        """Analyze portfolio positions and get AI insights"""
+        # Format positions data for the AI
+        portfolio_prompt = (
+            "Please analyze this investment portfolio and provide insights about:\n"
+            "1. Asset allocation and diversification\n"
+            "2. Any concentration risks\n"
+            "3. Quick recommendations\n\n"
+            "Portfolio positions:\n"
+        )
+        
+        for position in positions:
+            portfolio_prompt += (
+                f"- {position['symbol']}: {position['qty']} shares "
+                f"at ${position['current_price']:.2f} "
+                f"(Market Value: ${position['market_value']:.2f})\n"
+            )
+
+        # Add to conversation history
+        self.conversation_history.append({
+            "role": "user",
+            "content": portfolio_prompt
+        })
+
+        # Get AI analysis
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=self.conversation_history,
+            temperature=0.7,
+            max_tokens=800
+        )
+
+        bot_response = response.choices[0].message.content
+        self.conversation_history.append({
+            "role": "assistant",
+            "content": bot_response
+        })
+
+        return {
+            "response": bot_response,
+            "requires_action": False
+        }
+
     def process_message(self, user_message: str, user=None) -> Dict[str, Any]:
         """Process a user message and return the response"""
         try:
+            # Handle portfolio-overview command
+            if user_message == "portfolio-overview":
+                if user and user.has_alpaca_credentials():
+                    from services.portfolio import get_positions  # You'll need to create this
+                    positions = get_positions(user.alpaca_api_key, user.alpaca_secret_key)
+                    return self.analyze_portfolio(positions)
+                else:
+                    return {
+                        "response": "I need your Alpaca credentials to analyze your portfolio. Please provide them or set them up in settings.",
+                        "requires_action": True
+                    }
+
             # Special initialization message
             if user_message == "__init__":
                 return {
