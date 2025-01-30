@@ -6,18 +6,36 @@ export class ChatModule {
         this.sendButton = null;
         this.isInitialized = false;
         this.sensitiveInputMode = false;
+        this.typingIndicator = null;
     }
 
     initialize() {
         this.chatMessages = document.getElementById('chat-messages');
         this.messageInput = document.getElementById('chat-input');
         this.sendButton = document.getElementById('send-button');
+        this.typingIndicator = document.querySelector('.typing-indicator');
 
         if (this.messageInput && this.sendButton && this.chatMessages) {
             this.setupEventListeners();
             
-            // Clear any existing messages first
+            // Store initial message if it exists
+            const initialMessage = this.chatMessages.querySelector('.bot-message');
+            const initialMessageHtml = initialMessage ? initialMessage.outerHTML : '';
+            
+            // Clear chat messages
             this.chatMessages.innerHTML = '';
+            
+            // Restore initial message if it existed
+            if (initialMessageHtml) {
+                this.chatMessages.innerHTML = initialMessageHtml;
+            }
+            
+            // Add typing indicator at the end
+            this.typingIndicator = document.createElement('div');
+            this.typingIndicator.className = 'typing-indicator';
+            this.typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+            this.typingIndicator.style.display = 'none';
+            this.chatMessages.appendChild(this.typingIndicator);
             
             // Only initialize once
             if (!this.isInitialized) {
@@ -25,11 +43,7 @@ export class ChatModule {
                 this.isInitialized = true;
             }
         } else {
-            console.error('Chat elements not found:', {
-                messageInput: !!this.messageInput,
-                sendButton: !!this.sendButton,
-                chatMessages: !!this.chatMessages
-            });
+            console.error('Chat elements not found');
         }
     }
 
@@ -102,6 +116,9 @@ export class ChatModule {
         const displayMessage = this.sensitiveInputMode ? '******* [API Key] *******' : message;
         this.addUserMessage(displayMessage);
 
+        // Show typing indicator before making the request
+        this.showTypingIndicator();
+
         try {
             // Send message to backend
             const response = await fetch('/chat', {
@@ -111,6 +128,9 @@ export class ChatModule {
                 },
                 body: JSON.stringify({ message: message })
             });
+
+            // Hide typing indicator before processing response
+            this.hideTypingIndicator();
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -133,6 +153,8 @@ export class ChatModule {
                 this.messageInput.type = 'text';
             }
         } catch (error) {
+            // Make sure to hide typing indicator on error
+            this.hideTypingIndicator();
             console.error('Error sending message:', error);
             this.addBotMessage('❌ Sorry, there was an error processing your message. Please try again.');
         }
@@ -144,10 +166,21 @@ export class ChatModule {
             return;
         }
 
+        // Remove typing indicator if it exists
+        if (this.typingIndicator) {
+            this.typingIndicator.remove();
+        }
+
         const message = document.createElement('div');
         message.className = 'message user-message';
         message.innerHTML = text;
         this.chatMessages.appendChild(message);
+
+        // Add typing indicator back after the message
+        if (this.typingIndicator) {
+            this.chatMessages.appendChild(this.typingIndicator);
+        }
+
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
 
@@ -163,5 +196,18 @@ export class ChatModule {
         message.innerHTML = text;
         this.chatMessages.appendChild(message);
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
+
+    showTypingIndicator() {
+        if (this.typingIndicator) {
+            this.typingIndicator.style.display = 'block';
+            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        }
+    }
+
+    hideTypingIndicator() {
+        if (this.typingIndicator) {
+            this.typingIndicator.style.display = 'none';
+        }
     }
 } 

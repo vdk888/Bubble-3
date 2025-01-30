@@ -21,9 +21,11 @@ class ChatbotService:
                 - Highlight diversification metrics
                 - Point out any concentration risks
                 - Suggest potential optimizations
+                Keep responses concise but always offer to dig deeper into specific aspects.
+                For example: "Would you like me to analyze the sector diversification in more detail?"
+                or "I can provide a deeper analysis of any specific holding."
                 Be professional but friendly, and always provide clear, actionable insights.
-                If you don't know something, admit it and suggest alternatives.
-                Keep responses concise but informative."""
+                If you don't know something, admit it and suggest alternatives."""
             }
         ]
 
@@ -148,18 +150,100 @@ class ChatbotService:
             "requires_action": False
         }
 
+    def analyze_portfolio_performance(self, positions: list, performance_data: dict) -> Dict[str, Any]:
+        """Analyze portfolio performance and get AI insights"""
+        from services.performance_analysis import PerformanceAnalysisService
+        
+        # Get detailed performance analysis
+        analysis_service = PerformanceAnalysisService()
+        performance_analysis = analysis_service.get_performance_comparison(positions)
+        
+        # Format the analysis for the AI
+        portfolio_prompt = (
+            "Please analyze this portfolio's performance across multiple timeframes and compare to benchmarks.\n\n"
+            "Portfolio Performance:\n"
+        )
+        
+        # Add timeframe performances
+        for timeframe, return_value in performance_analysis['portfolio_performance'].items():
+            portfolio_prompt += f"- {timeframe}: {return_value:.2f}%\n"
+        
+        portfolio_prompt += "\nTop Contributing Assets:\n"
+        # Add top 3 contributing assets by weight
+        sorted_assets = sorted(
+            performance_analysis['asset_performance'].items(),
+            key=lambda x: x[1]['weight'],
+            reverse=True
+        )[:3]
+        for symbol, data in sorted_assets:
+            portfolio_prompt += f"- {symbol} (Weight: {data['weight']*100:.1f}%)\n"
+            for timeframe, return_value in data['performance'].items():
+                portfolio_prompt += f"  • {timeframe}: {return_value:.2f}%\n"
+        
+        portfolio_prompt += "\nBenchmark Comparison:\n"
+        for symbol, data in performance_analysis['benchmark_comparison'].items():
+            portfolio_prompt += f"- {data['name']} ({symbol}):\n"
+            for timeframe, return_value in data['performance'].items():
+                portfolio_prompt += f"  • {timeframe}: {return_value:.2f}%\n"
+        
+        portfolio_prompt += "\nPlease provide:\n"
+        portfolio_prompt += "1. A brief overview of the portfolio's performance\n"
+        portfolio_prompt += "2. How it compares to relevant benchmarks\n"
+        portfolio_prompt += "3. Notable outperforming/underperforming assets\n"
+        portfolio_prompt += "4. Any concerning trends or positive developments\n"
+        portfolio_prompt += "\nKeep the response concise but offer to analyze specific aspects in more detail."
+
+        self.conversation_history.append({
+            "role": "user",
+            "content": portfolio_prompt
+        })
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=self.conversation_history,
+            temperature=0.7,
+            max_tokens=800
+        )
+
+        bot_response = response.choices[0].message.content
+        self.conversation_history.append({
+            "role": "assistant",
+            "content": bot_response
+        })
+
+        return {
+            "response": bot_response,
+            "requires_action": False,
+            "analysis_data": performance_analysis  # Include raw data for potential UI visualizations
+        }
+
     def process_message(self, user_message: str, user=None) -> Dict[str, Any]:
         """Process a user message and return the response"""
         try:
             # Handle portfolio-overview command
             if user_message == "portfolio-overview":
                 if user and user.has_alpaca_credentials():
-                    from services.portfolio import get_positions  # You'll need to create this
+                    from services.portfolio import get_positions
                     positions = get_positions(user.alpaca_api_key, user.alpaca_secret_key)
                     return self.analyze_portfolio(positions)
                 else:
                     return {
                         "response": "I need your Alpaca credentials to analyze your portfolio. Please provide them or set them up in settings.",
+                        "requires_action": True
+                    }
+
+            # Handle portfolio-performance command
+            if user_message == "portfolio-performance":
+                if user and user.has_alpaca_credentials():
+                    from services.portfolio import PortfolioService
+                    portfolio_service = PortfolioService()
+                    portfolio_service.initialize_with_credentials(user.alpaca_api_key, user.alpaca_secret_key)
+                    positions = portfolio_service.positions
+                    performance_data = portfolio_service.get_portfolio_history()
+                    return self.analyze_portfolio_performance(positions, performance_data)
+                else:
+                    return {
+                        "response": "I need your Alpaca credentials to analyze your portfolio performance. Please provide them or set them up in settings.",
                         "requires_action": True
                     }
 
