@@ -7,6 +7,7 @@ import re
 from datetime import datetime, timedelta
 import pytz
 from dateutil.relativedelta import relativedelta
+from services.chatbot import ChatbotService
 
 api = Blueprint('api', __name__)
 
@@ -349,3 +350,50 @@ def get_portfolio_history():
     except Exception as e:
         current_app.logger.error(f"Error in get_portfolio_history: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
+
+@api.route('/chat/analyze_performance', methods=['GET'])
+@login_required
+def analyze_performance():
+    try:
+        portfolio_service = get_portfolio_service()
+        if not portfolio_service:
+            return jsonify({'error': 'Alpaca API credentials not set'}), 401
+
+        chatbot.initialize_portfolio_service(
+            current_user.alpaca_api_key,
+            current_user.alpaca_secret_key
+        )
+        
+        analysis = chatbot.analyze_portfolio_performance()
+        return jsonify({'analysis': analysis}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error analyzing performance: {str(e)}")
+        return jsonify({'error': 'Failed to analyze performance'}), 500
+
+@api.route('/portfolio/performance', methods=['POST'])
+@login_required
+def analyze_portfolio_performance():
+    """Analyze portfolio performance with progress updates"""
+    try:
+        portfolio_service = get_portfolio_service()
+        if not portfolio_service:
+            return jsonify({'error': 'Alpaca API credentials not set'}), 401
+
+        # Initialize chatbot with portfolio service
+        chatbot = ChatbotService(current_app.config['OPENAI_API_KEY'])
+        chatbot.initialize_portfolio_service(
+            current_user.alpaca_api_key,
+            current_user.alpaca_secret_key
+        )
+        
+        # Get the analysis with progress updates
+        progress_response = chatbot.analyze_portfolio_performance()
+        return jsonify(progress_response)
+
+    except Exception as e:
+        current_app.logger.error(f"Error analyzing performance: {str(e)}")
+        return jsonify({
+            'error': 'Failed to analyze performance',
+            'details': str(e)
+        }), 500

@@ -7,6 +7,7 @@ export class ChatModule {
         this.isInitialized = false;
         this.sensitiveInputMode = false;
         this.typingIndicator = null;
+        this._lastProgressMessage = null;
     }
 
     initialize() {
@@ -120,31 +121,56 @@ export class ChatModule {
         this.showTypingIndicator();
 
         try {
-            // Send message to backend
-            const response = await fetch('/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message: message })
-            });
+            let response;
+            let data;
 
-            // Hide typing indicator before processing response
-            this.hideTypingIndicator();
+            // Check if this is a portfolio performance request
+            if (message === 'portfolio-performance') {
+                response = await fetch('/api/portfolio/performance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+            } else {
+                // Regular chat message
+                response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+            }
 
             if (!response.ok) {
+                this.hideTypingIndicator();
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
+            data = await response.json();
             
             if (data.error) {
+                this.hideTypingIndicator();
                 this.addBotMessage(`❌ Error: ${data.error}`);
                 return;
             }
 
             if (data.response) {
-                this.addBotMessage(data.response);
+                if (data.in_progress) {
+                    // For progress messages, keep typing indicator and show progress
+                    this.addBotMessage(data.response, true);
+                } else {
+                    // For final message, hide typing indicator and show all progress + final message
+                    if (data.progress_messages && data.progress_messages.length > 0) {
+                        for (const progressMsg of data.progress_messages) {
+                            this.addBotMessage(progressMsg, true);
+                            await new Promise(resolve => setTimeout(resolve, 800)); // Slightly faster display
+                        }
+                    }
+                    this.hideTypingIndicator();
+                    this.addBotMessage(data.response);
+                }
             }
 
             // Reset sensitive input mode after sending
@@ -184,18 +210,36 @@ export class ChatModule {
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
 
-    addBotMessage(text) {
+    addBotMessage(text, isProgress = false) {
         if (!this.chatMessages) {
             console.error('Chat messages container not found');
             return;
         }
 
+        // Remove previous progress message if it exists
+        if (this._lastProgressMessage) {
+            this._lastProgressMessage.remove();
+            this._lastProgressMessage = null;
+        }
+
         const message = document.createElement('div');
-        message.className = 'message bot-message';
+        message.className = `message bot-message${isProgress ? ' progress-message' : ''}`;
         text = text.replace(/•/g, '•').replace(/\n/g, '<br>');
         message.innerHTML = text;
-        this.chatMessages.appendChild(message);
+        
+        // Insert before typing indicator if it exists
+        if (this.typingIndicator && this.typingIndicator.parentNode === this.chatMessages) {
+            this.chatMessages.insertBefore(message, this.typingIndicator);
+        } else {
+            this.chatMessages.appendChild(message);
+        }
+        
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+
+        // Store progress message reference if needed
+        if (isProgress) {
+            this._lastProgressMessage = message;
+        }
     }
 
     showTypingIndicator() {

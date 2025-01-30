@@ -21,6 +21,7 @@ if missing_vars:
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
 
 # Create database directory if it doesn't exist
 db_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database')
