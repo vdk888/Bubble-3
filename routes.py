@@ -446,3 +446,32 @@ def chat():
             'error': 'An error occurred processing your message',
             'details': str(e)
         }), 500
+
+@api.route('/user/important-info', methods=['GET'])
+@login_required
+def get_user_important_info():
+    """Get all important information stored for the user"""
+    try:
+        info_items = current_user.get_stored_info()
+        
+        # Format the response
+        formatted_info = [{
+            'type': item.info_type,
+            'content': item.content,
+            'created_at': item.created_at.isoformat(),
+            'updated_at': item.updated_at.isoformat()
+        } for item in info_items]
+        
+        current_app.logger.info(f"Retrieved {len(formatted_info)} important info items for user {current_user.id}")
+        
+        return jsonify({
+            'success': True,
+            'data': formatted_info
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error retrieving important info: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to retrieve important information'
+        }), 500

@@ -416,26 +416,33 @@ class ChatbotService:
                 content = parts[3]
                 
                 try:
+                    # Import necessary modules
+                    from flask import current_app
+                    from flask_login import current_user
                     from models import UserInfo, db
-                    # Get current user from Flask's global context
-                    from flask import g
                     
-                    if not hasattr(g, 'user') or not g.user:
+                    if not current_user or not current_user.is_authenticated:
+                        print("No authenticated user found")
                         return {
                             "response": "Cannot save user information - no user logged in",
                             "requires_action": True
                         }
                     
+                    # Create new UserInfo instance
                     new_info = UserInfo(
-                        user_id=g.user.id,
+                        user_id=current_user.id,
                         info_type=info_type,
                         content=content
                     )
-                    db.session.add(new_info)
-                    db.session.commit()
+                    
+                    # Add and commit to database within app context
+                    with current_app.app_context():
+                        db.session.add(new_info)
+                        db.session.commit()
+                        print(f"Successfully stored important info for user {current_user.id}")
                     
                     return {
-                        "response": f"✅ I've noted this important information about {info_type}.",
+                        "response": f"✅ I've noted this important information about your {info_type}.",
                         "data": {"type": info_type, "content": content}
                     }
                 except Exception as e:
