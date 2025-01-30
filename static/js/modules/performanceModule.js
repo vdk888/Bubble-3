@@ -65,43 +65,12 @@ export class PerformanceModule {
     }
 
     getTimeframeParams(timeframe) {
-        const params = new URLSearchParams();
-        switch(timeframe) {
-            case '1D':
-                params.append('timeframe', '5Min');
-                params.append('period', '1D');
-                break;
-            case '1W':
-                params.append('timeframe', '1H');
-                params.append('period', '1W');
-                break;
-            case '1M':
-                params.append('timeframe', '1D');
-                params.append('period', '1M');
-                break;
-            case '3M':
-                params.append('timeframe', '1D');
-                params.append('period', '3M');
-                break;
-            case '1Y':
-                params.append('timeframe', '1D');
-                params.append('period', '1A');
-                break;
-            case 'ALL':
-                params.append('timeframe', '1D');
-                params.append('period', 'all');
-                break;
-            default:
-                params.append('timeframe', '5Min');
-                params.append('period', '1D');
-        }
-        return params.toString();
+        return `timeframe=${timeframe}`;  // Just pass the timeframe button value directly
     }
 
     async loadPerformanceData(timeframe) {
         try {
-            const params = this.getTimeframeParams(timeframe);
-            const response = await fetch(`/api/portfolio/history?${params}`);
+            const response = await fetch(`/api/portfolio/history?timeframe=${timeframe}`);
             const data = await response.json();
             
             if (data.error) {
@@ -109,21 +78,33 @@ export class PerformanceModule {
                 return;
             }
 
-            console.log('Raw performance data:', data);
+            // Ensure we have matching timestamps and equity values
+            if (!data.timestamp || !data.equity || data.timestamp.length !== data.equity.length) {
+                console.error('Invalid performance data format:', data);
+                return;
+            }
 
-            // Create data points array
-            const dataPoints = data.timestamp.map((ts, index) => ({
-                x: new Date(ts * 1000),
-                y: data.equity[index]
-            }));
+            // Filter out any null or invalid values
+            const validDataPoints = data.timestamp.reduce((acc, ts, index) => {
+                const equity = data.equity[index];
+                if (ts && equity !== null && !isNaN(equity)) {
+                    acc.push({
+                        x: new Date(ts * 1000),
+                        y: equity
+                    });
+                }
+                return acc;
+            }, []);
 
-            console.log('Processed data points:', dataPoints);
+            // Sort data points by timestamp
+            const sortedDataPoints = validDataPoints.sort((a, b) => a.x - b.x);
 
-            this.updateChart(dataPoints, timeframe);
+            // Update the chart and table with the cleaned data
+            this.updateChart(sortedDataPoints, timeframe);
             this.updateStats({
                 total_return: data.profit_loss_pct[data.profit_loss_pct.length - 1] * 100,
                 history: {
-                    equity: data.equity
+                    equity: data.equity.filter(val => val !== null && !isNaN(val))
                 }
             });
         } catch (error) {
@@ -251,7 +232,7 @@ export class PerformanceModule {
             case '1D': return 'hour';
             case '1W': return 'day';
             case '1M': return 'day';
-            case '3M': return 'week';
+            case '3M': return 'day';
             case '1Y': return 'month';
             case 'ALL': return 'month';
             default: return 'hour';
@@ -260,12 +241,12 @@ export class PerformanceModule {
 
     getTooltipFormat(timeframe) {
         switch(timeframe) {
-            case '1D': return 'HH:mm';
+            case '1D': return 'MMM d, HH:mm';
             case '1W': return 'MMM d, HH:mm';
-            case '1M': return 'MMM d';
-            case '3M': return 'MMM d';
-            case '1Y': return 'MMM yyyy';
-            case 'ALL': return 'MMM yyyy';
+            case '1M': return 'MMM d, HH:mm';
+            case '3M': return 'MMM d, HH:mm';
+            case '1Y': return 'MMM d, yyyy';
+            case 'ALL': return 'MMM d, yyyy';
             default: return 'MMM d, HH:mm';
         }
     }

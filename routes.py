@@ -4,6 +4,9 @@ from models import db, User
 import alpaca_trade_api as tradeapi
 from services.portfolio import PortfolioService
 import re
+from datetime import datetime, timedelta
+import pytz
+from dateutil.relativedelta import relativedelta
 
 api = Blueprint('api', __name__)
 
@@ -273,6 +276,34 @@ def place_trade():
         current_app.logger.error(f"Error placing trade: {str(e)}")
         return jsonify({'error': 'Failed to place trade'}), 500
 
+def get_timeframe_params(timeframe, period):
+    """Helper function to calculate start and end dates based on timeframe and period"""
+    end_date = datetime.now(pytz.UTC)
+    
+    if period == '1D':
+        start_date = end_date - timedelta(days=1)
+        bar_size = '5Min'
+    elif period == '1W':
+        start_date = end_date - timedelta(weeks=1)
+        bar_size = '1H'
+    elif period == '1M':
+        start_date = end_date - relativedelta(months=1)
+        bar_size = '1H'
+    elif period == '3M':
+        start_date = end_date - relativedelta(months=3)
+        bar_size = '1H'
+    elif period == '1Y':
+        start_date = end_date - relativedelta(years=1)
+        bar_size = '1D'
+    elif period == 'ALL':
+        start_date = end_date - relativedelta(years=5)  # Default to 5 years for ALL
+        bar_size = '1D'
+    else:
+        start_date = end_date - timedelta(days=1)
+        bar_size = '5Min'
+    
+    return start_date, end_date, bar_size
+
 @api.route('/portfolio/history', methods=['GET'])
 @login_required
 def get_portfolio_history():
@@ -281,18 +312,40 @@ def get_portfolio_history():
         if not portfolio_service:
             return jsonify({'error': 'Alpaca API credentials not set'}), 401
 
-        # Get timeframe parameters
-        timeframe = request.args.get('timeframe', '1H')
-        period = request.args.get('period', '1D')
+        # Get timeframe from query (this will be the button value: '1D', '1W', etc.)
+        timeframe = request.args.get('timeframe', '1D')
 
-        # Get portfolio history directly from Alpaca service
-        history = portfolio_service.alpaca.get_portfolio_history(timeframe=timeframe, period=period)
-        
-        # Log history data for debugging
-        current_app.logger.info(f"Portfolio history data: {history}")
-        
-        return jsonify(history), 200
+        try:
+            # Get history using the timeframe directly
+            history = portfolio_service.alpaca.get_portfolio_history(timeframe=timeframe)
+
+            if not history or 'timestamp' not in history or 'equity' not in history:
+                return jsonify({'error': 'No portfolio history data available'}), 404
+
+            # Format response data
+            response_data = {
+                'timestamp': history['timestamp'],
+                'equity': history['equity'],
+                'profit_loss_pct': history.get('profit_loss_pct', []),
+                'timeframe': history.get('timeframe'),
+                'period': timeframe  # Use the original timeframe button value
+            }
+
+            if 'base_value' in history:
+                response_data['base_value'] = history['base_value']
+            if 'base_value_asof' in history:
+                response_data['base_value_asof'] = history['base_value_asof']
+
+            current_app.logger.info(f"Successfully retrieved portfolio history for timeframe: {timeframe}")
+            return jsonify(response_data), 200
+
+        except Exception as e:
+            current_app.logger.error(f"Error retrieving portfolio history from Alpaca: {str(e)}")
+            return jsonify({
+                'error': 'Failed to retrieve portfolio history',
+                'details': str(e)
+            }), 500
 
     except Exception as e:
-        current_app.logger.error(f"Error getting portfolio history: {str(e)}")
-        return jsonify({'error': 'Failed to get portfolio history'}), 500
+        current_app.logger.error(f"Error in get_portfolio_history: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500

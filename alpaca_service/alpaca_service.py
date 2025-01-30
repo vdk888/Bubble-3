@@ -134,7 +134,7 @@ class AlpacaService:
         
         return allocation
     
-    def get_portfolio_history(self, timeframe='1D', period='1M', date_end=None):
+    def get_portfolio_history(self, timeframe='1D', period=None, date_end=None):
         """Get historical portfolio values from Alpaca."""
         base_url = "https://paper-api.alpaca.markets"
         endpoint = f"{base_url}/v2/account/portfolio/history"
@@ -144,43 +144,49 @@ class AlpacaService:
             "APCA-API-SECRET-KEY": self.secret_key
         }
         
-        # Map the timeframe buttons to Alpaca's parameters
+        # Correct mapping for timeframes and periods
         params = {
             'extended_hours': 'true'
         }
         
-        # Map timeframe selection to Alpaca's parameters
-        if timeframe == "1D":
-            params['timeframe'] = '1H'
-            params['period'] = '1D'
-        elif timeframe == "1W":
-            params['timeframe'] = '1H'
-            params['period'] = '1W'
-        elif timeframe == "1M":
+        # For periods > 30 days, we must use '1D' timeframe
+        if timeframe in ["1M", "3M", "1Y", "ALL"]:
             params['timeframe'] = '1D'
-            params['period'] = '1M'
-        elif timeframe == "3M":
-            params['timeframe'] = '1D'
-            params['period'] = '3M'
-        elif timeframe == "1Y":
-            params['timeframe'] = '1D'
-            params['period'] = '1A'
-        else:  # ALL
-            params['timeframe'] = '1D'
-            params['period'] = 'all'
+            if timeframe == "1M":
+                params['period'] = '1M'
+            elif timeframe == "3M":
+                params['period'] = '3M'
+            elif timeframe == "1Y":
+                params['period'] = '1A'
+            else:  # ALL
+                params['period'] = 'all'
+        else:
+            # For shorter periods, we can use more granular timeframes
+            if timeframe == "1D":
+                params['timeframe'] = '5Min'
+                params['period'] = '1D'
+            elif timeframe == "1W":
+                params['timeframe'] = '1H'
+                params['period'] = '1W'
         
         if date_end:
             params['date_end'] = date_end
         
-        response = requests.get(endpoint, headers=headers, params=params)
-        
-        if response.status_code != 200:
-            print(f"Error getting portfolio history: {response.text}")  # Debug print
-            raise Exception(f"Error getting portfolio history: {response.text}")
-        
-        data = response.json()
-        print(f"Portfolio history data: {data}")  # Debug print
-        return data
+        try:
+            print(f"Requesting portfolio history with params: {params}")  # Debug print
+            response = requests.get(endpoint, headers=headers, params=params)
+            
+            if response.status_code != 200:
+                print(f"Error getting portfolio history: {response.text}")
+                raise Exception(f"Error getting portfolio history: {response.text}")
+            
+            data = response.json()
+            print(f"Portfolio history data: {data}")  # Debug print
+            return data
+            
+        except Exception as e:
+            print(f"Error in get_portfolio_history: {str(e)}")
+            raise
 
     def create_portfolio_plot(self, portfolio_history):
         """Create a visualization of portfolio history."""
