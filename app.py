@@ -28,6 +28,7 @@ db_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database')
 os.makedirs(db_dir, exist_ok=True)
 db_path = os.path.join(db_dir, 'users.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize database and migrations
 db.init_app(app)

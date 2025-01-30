@@ -47,6 +47,12 @@ class ChatbotService:
                 Example: "TOOL:PORTFOLIO_PERFORMANCE:1D"
                 Timeframes: 1D, 1W, 1M, 3M, 1Y, ALL
 
+                6. IMPORTANT_INFO - Save important user information
+                Usage: When you detect important information about the user, respond with:
+                "TOOL:IMPORTANT_INFO:{info_type}:{content}"
+                Example: "TOOL:IMPORTANT_INFO:life_event:User mentioned they're planning to retire in 2025"
+                Info types: life_event, preference, goal, risk_profile
+
                 When users ask questions:
                 1. Determine if you need any market data to provide a complete answer
                 2. If yes, request the data using the appropriate tool command
@@ -402,6 +408,39 @@ class ChatbotService:
                     "response": self._format_company_info_response(data),
                     "data": data
                 }
+
+            elif tool == "IMPORTANT_INFO":
+                if len(parts) != 4:
+                    return {"error": "Invalid IMPORTANT_INFO command format"}
+                info_type = parts[2]
+                content = parts[3]
+                
+                try:
+                    from models import UserInfo, db
+                    # Get current user from Flask's global context
+                    from flask import g
+                    
+                    if not hasattr(g, 'user') or not g.user:
+                        return {
+                            "response": "Cannot save user information - no user logged in",
+                            "requires_action": True
+                        }
+                    
+                    new_info = UserInfo(
+                        user_id=g.user.id,
+                        info_type=info_type,
+                        content=content
+                    )
+                    db.session.add(new_info)
+                    db.session.commit()
+                    
+                    return {
+                        "response": f"✅ I've noted this important information about {info_type}.",
+                        "data": {"type": info_type, "content": content}
+                    }
+                except Exception as e:
+                    print(f"Error saving important info: {str(e)}")
+                    return {"error": f"Failed to save information: {str(e)}"}
 
             return {"error": f"Unknown tool: {tool}"}
 

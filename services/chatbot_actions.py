@@ -35,7 +35,8 @@ class ChatbotActions:
             
             # Market status actions
             'get_market_status': self._get_market_status,
-            'get_trading_calendar': self._get_trading_calendar
+            'get_trading_calendar': self._get_trading_calendar,
+            'save_important_info': self._save_important_info,
         }
         
         handler = action_handlers.get(action)
@@ -227,3 +228,28 @@ class ChatbotActions:
         
         calendar = self.trading.get_calendar(start, end)
         return {'calendar': calendar}
+
+    def _save_important_info(self, params: Dict) -> Dict:
+        """Save important user information"""
+        required = ['info_type', 'content']
+        if not all(k in params for k in required):
+            return {'error': f'Missing required parameters. Need: {", ".join(required)}'}
+        
+        try:
+            from models import UserInfo, db
+            from flask import g
+            
+            new_info = UserInfo(
+                user_id=g.user.id,
+                info_type=params['info_type'],
+                content=params['content']
+            )
+            db.session.add(new_info)
+            db.session.commit()
+            
+            return {
+                'success': True,
+                'message': f"Saved important information about {params['info_type']}"
+            }
+        except Exception as e:
+            return {'error': str(e)}
