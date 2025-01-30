@@ -5,6 +5,7 @@ export class ChatModule {
         this.messageInput = null;
         this.sendButton = null;
         this.isInitialized = false;
+        this.sensitiveInputMode = false;
     }
 
     initialize() {
@@ -14,6 +15,9 @@ export class ChatModule {
 
         if (this.messageInput && this.sendButton && this.chatMessages) {
             this.setupEventListeners();
+            
+            // Clear any existing messages first
+            this.chatMessages.innerHTML = '';
             
             // Only initialize once
             if (!this.isInitialized) {
@@ -44,10 +48,32 @@ export class ChatModule {
                 this.messageInput.value = '';
             }
         });
+
+        // Add input event listener to detect potential API keys
+        this.messageInput.addEventListener('input', (e) => {
+            const value = e.target.value;
+            if (this._containsApiKey(value)) {
+                this.sensitiveInputMode = true;
+                this.messageInput.type = 'password';
+            } else {
+                this.sensitiveInputMode = false;
+                this.messageInput.type = 'text';
+            }
+        });
+    }
+
+    _containsApiKey(text) {
+        // Check for potential Alpaca API key patterns
+        return /PK[A-Z0-9]{16,}|[A-Za-z0-9]{32,}/.test(text);
     }
 
     async initializeChat() {
         try {
+            // Check if there are already messages
+            if (this.chatMessages.children.length > 0) {
+                return; // Skip initialization if messages exist
+            }
+
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: {
@@ -72,8 +98,9 @@ export class ChatModule {
             return;
         }
 
-        // Add user message to chat
-        this.addUserMessage(message);
+        // Add user message to chat with masked content if it contains API keys
+        const displayMessage = this.sensitiveInputMode ? '******* [API Key] *******' : message;
+        this.addUserMessage(displayMessage);
 
         try {
             // Send message to backend
@@ -98,6 +125,12 @@ export class ChatModule {
 
             if (data.response) {
                 this.addBotMessage(data.response);
+            }
+
+            // Reset sensitive input mode after sending
+            if (this.sensitiveInputMode) {
+                this.sensitiveInputMode = false;
+                this.messageInput.type = 'text';
             }
         } catch (error) {
             console.error('Error sending message:', error);
