@@ -156,6 +156,31 @@ def settings():
     
     return render_template('settings.html')
 
+@app.route('/get_user_info')
+@login_required
+def get_user_info():
+    """Fetch stored information for the current user"""
+    try:
+        app.logger.info(f"Fetching stored information for user {current_user.username}")
+        user_info = current_user.get_stored_info()
+        
+        # Convert the user info objects to dictionaries
+        info_list = [{
+            'info_type': info.info_type,
+            'content': info.content,
+            'created_at': info.created_at.isoformat()
+        } for info in user_info]
+        
+        app.logger.info(f"Found {len(info_list)} info items for user {current_user.username}")
+        return jsonify(info_list)
+        
+    except Exception as e:
+        app.logger.error(f"Error fetching user info: {str(e)}")
+        return jsonify({
+            'error': 'Failed to fetch user information',
+            'details': str(e)
+        }), 500
+
 if __name__ == '__main__':
     # Create data directory if it doesn't exist
     db_dir = os.path.dirname(db_path)

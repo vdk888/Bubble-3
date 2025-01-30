@@ -26,6 +26,10 @@ class User(UserMixin, db.Model):
     def has_alpaca_credentials(self):
         return bool(self.alpaca_api_key and self.alpaca_secret_key)
 
+    def get_stored_info(self):
+        """Get all stored information for the user"""
+        return UserInfo.query.filter_by(user_id=self.id).order_by(UserInfo.created_at.desc()).all()
+
 class UserInfo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

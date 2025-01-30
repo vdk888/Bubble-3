@@ -8,6 +8,8 @@ export class ChatModule {
         this.sensitiveInputMode = false;
         this.typingIndicator = null;
         this._lastProgressMessage = null;
+        this.userInfoModal = null;
+        this.userInfoContent = null;
     }
 
     initialize() {
@@ -46,6 +48,29 @@ export class ChatModule {
         } else {
             console.error('Chat elements not found');
         }
+
+        // Initialize user info modal elements
+        this.userInfoModal = document.getElementById('userInfoModal');
+        this.userInfoContent = document.getElementById('userInfoContent');
+        
+        // Setup user info button
+        const viewUserInfoBtn = document.getElementById('view-user-info');
+        if (viewUserInfoBtn) {
+            viewUserInfoBtn.addEventListener('click', () => this.showUserInfo());
+        }
+        
+        // Setup modal close button
+        const closeModal = document.querySelector('.close-modal');
+        if (closeModal) {
+            closeModal.addEventListener('click', () => this.hideUserInfo());
+        }
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target === this.userInfoModal) {
+                this.hideUserInfo();
+            }
+        });
     }
 
     setupEventListeners() {
@@ -309,5 +334,62 @@ export class ChatModule {
         if (this.typingIndicator) {
             this.typingIndicator.style.display = 'none';
         }
+    }
+
+    async showUserInfo() {
+        try {
+            console.log('Fetching user information...');
+            const response = await fetch('/get_user_info');
+            const data = await response.json();
+            
+            if (data.error) {
+                console.error('Error fetching user info:', data.error);
+                return;
+            }
+
+            // Group information by type
+            const groupedInfo = {};
+            data.forEach(info => {
+                if (!groupedInfo[info.info_type]) {
+                    groupedInfo[info.info_type] = [];
+                }
+                groupedInfo[info.info_type].push(info);
+            });
+
+            // Generate HTML content
+            let html = '';
+            for (const [type, items] of Object.entries(groupedInfo)) {
+                html += `
+                    <div class="info-category">
+                        <h3>${this._formatInfoType(type)}</h3>
+                        ${items.map(item => `
+                            <div class="info-item">
+                                <div>${item.content}</div>
+                                <div class="info-date">Noted on: ${new Date(item.created_at).toLocaleString()}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            this.userInfoContent.innerHTML = html || '<p>No stored information found.</p>';
+            this.userInfoModal.style.display = 'block';
+            
+        } catch (error) {
+            console.error('Error showing user info:', error);
+        }
+    }
+
+    hideUserInfo() {
+        if (this.userInfoModal) {
+            this.userInfoModal.style.display = 'none';
+        }
+    }
+
+    _formatInfoType(type) {
+        return type
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     }
 } 
