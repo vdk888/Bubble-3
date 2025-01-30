@@ -408,3 +408,41 @@ def analyze_portfolio_performance():
             'error': 'Failed to analyze performance',
             'details': str(e)
         }), 500
+
+@api.route('/chat', methods=['POST'])
+@login_required
+def chat():
+    """Handle chat messages and tool responses"""
+    try:
+        data = request.get_json()
+        message = data.get('message')
+        
+        if not message:
+            return jsonify({'error': 'No message provided'}), 400
+
+        # Initialize chatbot with OpenAI key
+        chatbot = ChatbotService(current_app.config['OPENAI_API_KEY'])
+        
+        # If user has Alpaca credentials, initialize portfolio service
+        if current_user.has_alpaca_credentials():
+            chatbot.initialize_portfolio_service(
+                current_user.alpaca_api_key,
+                current_user.alpaca_secret_key
+            )
+
+        # Process the message
+        response = chatbot.process_message(message, current_user)
+        
+        # Log the interaction for debugging
+        current_app.logger.info(f"Chat request processed. Message: {message}")
+        if response.get('error'):
+            current_app.logger.error(f"Chat error: {response.get('error')}")
+        
+        return jsonify(response)
+
+    except Exception as e:
+        current_app.logger.error(f"Error in chat endpoint: {str(e)}")
+        return jsonify({
+            'error': 'An error occurred processing your message',
+            'details': str(e)
+        }), 500

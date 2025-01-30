@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 import yfinance as yf
 from services.portfolio import PortfolioService
+from services.yahoo_finance import YahooFinanceService
 
 class ChatbotService:
     def __init__(self, api_key: str):
@@ -17,21 +18,41 @@ class ChatbotService:
         self.conversation_history = [
             {
                 "role": "system",
-                "content": """You are an AI financial assistant helping users manage their investment portfolio.
-                You can help with portfolio analysis, market trends, and trading strategies.
-                When analyzing portfolios:
-                - Break down asset allocation by type (stocks, bonds, etc.)
-                - Highlight diversification metrics
-                - Point out any concentration risks
-                - Suggest potential optimizations
-                Keep responses concise but always offer to dig deeper into specific aspects.
-                For example: "Would you like me to analyze the sector diversification in more detail?"
-                or "I can provide a deeper analysis of any specific holding."
-                Be professional but friendly, and always provide clear, actionable insights.
-                If you don't know something, admit it and suggest alternatives."""
+                "content": """You are an AI financial assistant with access to various tools and data sources. Your role is to help users with their financial and investment needs.
+
+                You have access to the following tools:
+
+                1. PRICE_DATA - Get price data for any stock or crypto
+                Usage: When you need price data, respond with: 
+                "TOOL:PRICE_DATA:{symbols}:{timeframe}"
+                Example: "TOOL:PRICE_DATA:AAPL,MSFT:1mo"
+                Timeframes: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, max
+
+                2. MARKET_SUMMARY - Get major market indices data
+                Usage: When you need market overview, respond with:
+                "TOOL:MARKET_SUMMARY"
+
+                3. COMPANY_INFO - Get detailed company information
+                Usage: When you need company details, respond with:
+                "TOOL:COMPANY_INFO:{symbol}"
+                Example: "TOOL:COMPANY_INFO:AAPL"
+
+                When users ask questions:
+                1. Determine if you need any market data to provide a complete answer
+                2. If yes, request the data using the appropriate tool command
+                3. Once you receive the data, analyze it and provide insights
+                4. Always explain your analysis and offer additional context
+
+                Remember:
+                - Be concise but informative
+                - Explain market terms when used
+                - Provide context for numbers and trends
+                - Suggest relevant follow-up analysis when appropriate
+                - If you're unsure about something, say so and explain what you do know"""
             }
         ]
         self.portfolio_service = None
+        self.yahoo_finance = YahooFinanceService()
 
     def _validate_alpaca_key(self, key: str, key_type: str = "api") -> bool:
         """Validate Alpaca key format"""
@@ -384,100 +405,13 @@ class ChatbotService:
     def process_message(self, user_message: str, user=None) -> Dict[str, Any]:
         """Process a user message and return the response"""
         try:
-            # Initialize portfolio service if user has credentials and it's not already initialized
-            if user and user.has_alpaca_credentials() and not self.portfolio_service:
-                self.initialize_portfolio_service(user.alpaca_api_key, user.alpaca_secret_key)
-
-            # Check for performance analysis request
-            if any(keyword in user_message.lower() for keyword in ['performance', 'analysis', 'compare', 'benchmark', 'return']) or user_message == 'portfolio-performance':
-                # We already have credentials and portfolio service initialized
-                if self.portfolio_service:
-                    return self.analyze_portfolio_performance()
-                elif user and user.has_alpaca_credentials():
-                    self.initialize_portfolio_service(user.alpaca_api_key, user.alpaca_secret_key)
-                    return self.analyze_portfolio_performance()
-                else:
-                    return {
-                        "response": "I need your Alpaca credentials to analyze your portfolio performance. Please provide them or set them up in settings.",
-                        "requires_action": True
-                    }
-
-            # Handle portfolio-overview command
-            if user_message == "portfolio-overview":
-                if self.portfolio_service:
-                    positions = self.portfolio_service.alpaca.get_positions()
-                    return self.analyze_portfolio(positions)
-                elif user and user.has_alpaca_credentials():
-                    self.initialize_portfolio_service(user.alpaca_api_key, user.alpaca_secret_key)
-                    positions = self.portfolio_service.alpaca.get_positions()
-                    return self.analyze_portfolio(positions)
-                else:
-                    return {
-                        "response": "I need your Alpaca credentials to analyze your portfolio. Please provide them or set them up in settings.",
-                        "requires_action": True
-                    }
-
-            # Special initialization message
-            if user_message == "__init__":
-                return {
-                    "response": self.get_greeting(user),
-                    "requires_action": False
-                }
-
-            # Check for Alpaca keys in the message
-            detected_keys = self._detect_alpaca_keys(user_message)
-            if detected_keys:
-                if user:
-                    current_api_key = user.alpaca_api_key
-                    current_secret_key = user.alpaca_secret_key
-                    
-                    # Update the detected keys
-                    if "api_key" in detected_keys:
-                        user.alpaca_api_key = detected_keys["api_key"]
-                    if "secret_key" in detected_keys:
-                        user.alpaca_secret_key = detected_keys["secret_key"]
-                    
-                    # Validate credentials before saving if we have both keys
-                    if user.has_alpaca_credentials():
-                        if self._validate_alpaca_credentials(user.alpaca_api_key, user.alpaca_secret_key):
-                            # Save to database if validation successful
-                            if current_api_key != user.alpaca_api_key or current_secret_key != user.alpaca_secret_key:
-                                user.save_alpaca_credentials(user.alpaca_api_key, user.alpaca_secret_key)
-                            return {
-                                "response": "✅ Great! I've validated your Alpaca credentials and they're working perfectly. You're now ready to start trading! What would you like to do first?",
-                                "requires_action": False
-                            }
-                        else:
-                            # Reset the invalid credentials
-                            user.alpaca_api_key = current_api_key
-                            user.alpaca_secret_key = current_secret_key
-                            return {
-                                "response": "❌ The provided credentials are not valid with the Alpaca API. Please check your credentials and try again.",
-                                "requires_action": False
-                            }
-                    
-                    # If we only have one key, save it and ask for the other
-                    if current_api_key != user.alpaca_api_key or current_secret_key != user.alpaca_secret_key:
-                        user.save_alpaca_credentials(user.alpaca_api_key, user.alpaca_secret_key)
-                    
-                    if not user.alpaca_api_key:
-                        return {
-                            "response": "I've saved your Alpaca Secret key. I still need your API key (starts with 'PK'). Please provide it when you're ready.",
-                            "requires_action": False
-                        }
-                    else:
-                        return {
-                            "response": "I've saved your Alpaca API key. I still need your Secret key. Please provide it when you're ready.",
-                            "requires_action": False
-                        }
-
-            # Add user context and message to conversation
+            # Add user message to conversation
             self.conversation_history.append({
                 "role": "user",
                 "content": user_message
             })
 
-            # Get response from OpenAI using new API format
+            # Get initial response from OpenAI
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=self.conversation_history,
@@ -485,8 +419,39 @@ class ChatbotService:
                 max_tokens=1500
             )
 
-            # Extract and store response using new response format
             bot_response = response.choices[0].message.content
+            print(f"Initial bot response: {bot_response}")  # Debug log
+
+            # Check if the response contains a tool command
+            if "TOOL:" in bot_response:
+                # Extract the tool command - it might be followed by additional text
+                command_parts = bot_response.split("\n")
+                for part in command_parts:
+                    if part.strip().startswith("TOOL:"):
+                        tool_command = part.strip()
+                        print(f"Detected tool command: {tool_command}")  # Debug log
+                        
+                        # Get tool response
+                        tool_response = self._handle_tool_command(tool_command)
+                        
+                        # Add tool result to conversation for context
+                        self.conversation_history.append({
+                            "role": "assistant",
+                            "content": f"I've fetched the following data:\n{tool_response['response']}"
+                        })
+
+                        # Get final analysis from OpenAI
+                        final_response = self.client.chat.completions.create(
+                            model=self.model,
+                            messages=self.conversation_history,
+                            temperature=0.7,
+                            max_tokens=1500
+                        )
+
+                        bot_response = final_response.choices[0].message.content
+                        break
+
+            # Add final bot response to conversation history
             self.conversation_history.append({
                 "role": "assistant",
                 "content": bot_response
@@ -494,10 +459,10 @@ class ChatbotService:
 
             # Keep conversation history manageable
             if len(self.conversation_history) > 10:
-                # Keep first system message and last 9 messages
+                # Keep system message and last 9 exchanges
                 self.conversation_history = [
-                    self.conversation_history[0]  # Keep initial system message
-                ] + self.conversation_history[-9:]  # Keep last 9 messages
+                    self.conversation_history[0]  # Keep system message
+                ] + self.conversation_history[-9:]
 
             return {
                 "response": bot_response,
@@ -505,12 +470,97 @@ class ChatbotService:
             }
 
         except Exception as e:
-            print(f"Error in process_message: {str(e)}")  # Log the error
+            print(f"Error in process_message: {str(e)}")
             return {
                 "response": "I apologize, but I encountered an error. Please try again.",
                 "requires_action": False,
                 "error": True
             }
+
+    def _handle_tool_command(self, command: str) -> Dict:
+        """Handle tool commands from the chatbot"""
+        try:
+            print(f"Processing tool command: {command}")  # Debug log
+            parts = command.split(":")
+            if len(parts) < 2:
+                return {"error": "Invalid tool command"}
+
+            tool = parts[1]
+            print(f"Tool type: {tool}")  # Debug log
+            
+            if tool == "PRICE_DATA":
+                if len(parts) != 4:
+                    return {"error": "Invalid PRICE_DATA command format"}
+                symbols = [s.strip() for s in parts[2].split(",")]
+                timeframe = parts[3]
+                print(f"Fetching price data for symbols: {symbols}, timeframe: {timeframe}")  # Debug log
+                
+                try:
+                    data = self.yahoo_finance.get_price_data(symbols, timeframe)
+                    formatted_response = self._format_price_data_response(data)
+                    print(f"Successfully formatted price data response")  # Debug log
+                    return {
+                        "response": formatted_response,
+                        "data": data
+                    }
+                except Exception as e:
+                    print(f"Error in price data handling: {str(e)}")  # Debug log
+                    return {"error": f"Failed to process price data: {str(e)}"}
+
+            elif tool == "MARKET_SUMMARY":
+                print("Fetching market summary")  # Debug log
+                data = self.yahoo_finance.get_market_summary()
+                return {
+                    "response": self._format_price_data_response(data),
+                    "data": data
+                }
+
+            elif tool == "COMPANY_INFO":
+                if len(parts) != 3:
+                    return {"error": "Invalid COMPANY_INFO command format"}
+                symbol = parts[2]
+                print(f"Fetching company info for: {symbol}")  # Debug log
+                data = self.yahoo_finance.get_company_info(symbol)
+                return {
+                    "response": self._format_company_info_response(data),
+                    "data": data
+                }
+
+            return {"error": f"Unknown tool: {tool}"}
+
+        except Exception as e:
+            print(f"Error handling tool command: {str(e)}")
+            return {"error": str(e)}
+
+    def _format_company_info_response(self, data: Dict) -> str:
+        """Format company information into a user-friendly response"""
+        if 'error' in data:
+            return f"Sorry, I couldn't fetch the company information: {data['error']}"
+
+        basic = data['basic_info']
+        financial = data['financial_info']
+
+        response = [
+            f"📈 {basic['name']} Company Profile:",
+            f"Sector: {basic['sector'] or 'N/A'}",
+            f"Industry: {basic['industry'] or 'N/A'}",
+            f"Country: {basic['country'] or 'N/A'}",
+            "",
+            "Key Metrics:",
+            f"Market Cap: ${financial['market_cap']:,.2f}" if financial['market_cap'] else "Market Cap: N/A",
+            f"Forward P/E: {financial['forward_pe']:.2f}" if financial['forward_pe'] else "Forward P/E: N/A",
+            f"Dividend Yield: {financial['dividend_yield']*100:.2f}%" if financial['dividend_yield'] else "Dividend Yield: N/A",
+            f"Beta: {financial['beta']:.2f}" if financial['beta'] else "Beta: N/A",
+            "",
+            "52-Week Range:",
+            f"High: ${financial['fifty_two_week_high']:,.2f}" if financial['fifty_two_week_high'] else "High: N/A",
+            f"Low: ${financial['fifty_two_week_low']:,.2f}" if financial['fifty_two_week_low'] else "Low: N/A"
+        ]
+
+        if basic.get('description'):
+            response.extend(["", "Business Description:", basic['description']])
+
+        return "\n".join(response)
 
     def _extract_visual_data(self, message: str) -> Optional[Dict]:
         """
@@ -604,3 +654,120 @@ class ChatbotService:
         except Exception as e:
             print(f"Error generating Excel file: {str(e)}")
             raise
+
+    def _detect_price_data_request(self, message: str) -> Optional[Dict]:
+        """Detect if the message is requesting price data"""
+        # Pattern for price requests
+        price_patterns = [
+            r'(?i)(?:get|show|what(?:\'s)?|how?s? (?:is|are))?\s*(?:the)?\s*(?:price|prices|chart|data)\s+(?:for|of)?\s+([A-Za-z0-9,\s]+)',
+            r'(?i)([A-Za-z0-9]+)\s+(?:price|chart|data)',
+            r'(?i)how\s+is\s+([A-Za-z0-9]+)\s+(?:doing|performing)',
+        ]
+        
+        # Pattern for timeframes
+        timeframe_patterns = {
+            r'(?i)last\s+(\d+)\s*(day|week|month|year)s?': lambda m: f"{m.group(1)}{m.group(2)[0]}",
+            r'(?i)(today|daily)': lambda m: "1d",
+            r'(?i)(week|weekly)': lambda m: "1wk",
+            r'(?i)(month|monthly)': lambda m: "1mo",
+            r'(?i)(year|yearly)': lambda m: "1y",
+        }
+        
+        # Check for price request
+        symbols = None
+        for pattern in price_patterns:
+            match = re.search(pattern, message)
+            if match:
+                symbols = [s.strip().upper() for s in match.group(1).split(',')]
+                break
+        
+        if not symbols:
+            return None
+        
+        # Check for timeframe
+        timeframe = "1mo"  # default
+        for pattern, timeframe_func in timeframe_patterns.items():
+            match = re.search(pattern, message)
+            if match:
+                timeframe = timeframe_func(match)
+                break
+            
+        return {
+            'symbols': symbols,
+            'timeframe': timeframe
+        }
+
+    def _handle_price_data_request(self, request: Dict) -> Dict:
+        """Handle a price data request"""
+        try:
+            # Fetch data from Yahoo Finance
+            data = self.yahoo_finance.get_price_data(
+                symbols=request['symbols'],
+                timeframe=request['timeframe']
+            )
+            
+            # Format response for the user
+            response = self._format_price_data_response(data)
+            
+            return {
+                "response": response,
+                "requires_action": False,
+                "data": data  # Include raw data for potential follow-up analysis
+            }
+            
+        except Exception as e:
+            print(f"Error handling price data request: {str(e)}")
+            return {
+                "response": f"I apologize, but I encountered an error while fetching the price data: {str(e)}",
+                "requires_action": False,
+                "error": True
+            }
+
+    def _format_price_data_response(self, data: Dict) -> str:
+        """Format price data into a user-friendly response"""
+        if 'error' in data:
+            return f"Sorry, I couldn't fetch the price data: {data['error']}"
+        
+        response_parts = []
+        for symbol, symbol_data in data.items():
+            if 'error' in symbol_data:
+                response_parts.append(f"❌ {symbol}: Could not fetch data ({symbol_data['error']})")
+                continue
+            
+            metadata = symbol_data['metadata']
+            prices = symbol_data['prices']
+            
+            if not prices:
+                response_parts.append(f"❌ {symbol}: No price data available")
+                continue
+            
+            latest_price = metadata['current_price']
+            name = metadata['name']
+            
+            # Calculate price change
+            first_price = prices[0]['Close']
+            last_price = prices[-1]['Close']
+            price_change = ((last_price - first_price) / first_price) * 100
+            
+            # Format the response with more details
+            response = [
+                f"📊 {name} ({symbol})",
+                f"Current Price: ${latest_price:,.2f}",
+                f"Period Change: {price_change:+.2f}%",
+                f"Trading Period: {symbol_data['timeframe']}",
+                f"Exchange: {metadata['exchange']}",
+                "",
+                "Additional Information:",
+                f"• Market Cap: ${metadata['market_cap']:,.0f}" if metadata['market_cap'] else "• Market Cap: N/A",
+                f"• Sector: {metadata['sector']}" if metadata['sector'] else "• Sector: N/A",
+                f"• Industry: {metadata['industry']}" if metadata['industry'] else "• Industry: N/A",
+                "",
+                "Price Range:",
+                f"• High: ${max(p['High'] for p in prices):,.2f}",
+                f"• Low: ${min(p['Low'] for p in prices):,.2f}",
+                f"• Volume: {sum(p['Volume'] for p in prices):,.0f} shares traded"
+            ]
+            
+            response_parts.append("\n".join(response))
+        
+        return "\n\n".join(response_parts)

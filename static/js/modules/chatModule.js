@@ -113,125 +113,83 @@ export class ChatModule {
             return;
         }
 
-        // Add user message to chat with masked content if it contains API keys
+        // Add user message to chat
         const displayMessage = this.sensitiveInputMode ? '******* [API Key] *******' : message;
         this.addUserMessage(displayMessage);
 
-        // Show typing indicator before making the request
+        // Show typing indicator
         this.showTypingIndicator();
 
         try {
-            let response;
-            let data;
-
-            // Check if this is a portfolio performance request
-            if (message === 'portfolio-performance') {
-                console.log('Sending portfolio performance request...'); // Debug log
-                response = await fetch('/api/portfolio/performance', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                console.log('Portfolio performance response status:', response.status); // Debug log
-            } else {
-                // Regular chat message
-                response = await fetch('/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ message: message })
-                });
-            }
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            });
 
             if (!response.ok) {
-                this.hideTypingIndicator();
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            data = await response.json();
-            console.log('Response data:', data); // Debug log
-            
+            const data = await response.json();
+            console.log('Chat response:', data);
+
             if (data.error) {
                 this.hideTypingIndicator();
                 this.addBotMessage(`❌ Error: ${data.error}`);
                 return;
             }
 
-            if (data.response) {
-                if (data.in_progress) {
-                    // For progress messages, keep typing indicator and show progress
-                    this.addBotMessage(data.response, true);
-                } else {
-                    // For final message, hide typing indicator and show all progress + final message
-                    if (data.progress_messages && data.progress_messages.length > 0) {
-                        for (const progressMsg of data.progress_messages) {
-                            this.addBotMessage(progressMsg, true);
-                            await new Promise(resolve => setTimeout(resolve, 800)); // Slightly faster display
-                        }
-                    }
-                    this.hideTypingIndicator();
-                    this.addBotMessage(data.response);
-
-                    // Handle file attachment if present
-                    if (data.has_attachment && data.attachment) {
-                        console.log('Attachment found, creating download button...'); // Debug log
-                        // Create container for download button
-                        const downloadContainer = document.createElement('div');
-                        downloadContainer.className = 'download-container';
-                        
-                        // Create download button
-                        const downloadBtn = document.createElement('button');
-                        downloadBtn.className = 'download-btn';
-                        downloadBtn.innerHTML = '<i class="fas fa-file-excel"></i> Download Performance Data (Excel)';
-                        downloadBtn.onclick = () => {
-                            try {
-                                this.downloadAttachment(data.attachment);
-                                // Add success indicator
-                                downloadBtn.innerHTML = '<i class="fas fa-check"></i> Downloaded Successfully!';
-                                setTimeout(() => {
-                                    downloadBtn.innerHTML = '<i class="fas fa-file-excel"></i> Download Performance Data (Excel)';
-                                }, 2000);
-                            } catch (error) {
-                                console.error('Error downloading file:', error);
-                                downloadBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Download Failed - Try Again';
-                                setTimeout(() => {
-                                    downloadBtn.innerHTML = '<i class="fas fa-file-excel"></i> Download Performance Data (Excel)';
-                                }, 2000);
-                            }
-                        };
-                        
-                        downloadContainer.appendChild(downloadBtn);
-                        
-                        // Find the last bot message
-                        const messages = Array.from(this.chatMessages.children);
-                        const lastBotMessage = messages.reverse().find(msg => msg.classList.contains('bot-message') && !msg.classList.contains('progress-message'));
-                        
-                        if (lastBotMessage) {
-                            lastBotMessage.appendChild(downloadContainer);
-                            // Ensure the new content is visible
-                            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-                            console.log('Download button added to message'); // Debug log
-                        } else {
-                            console.error('No suitable bot message found to append download button'); // Debug log
-                        }
-                    } else {
-                        console.log('No attachment found in response'); // Debug log
-                    }
+            // Handle progress messages if any
+            if (data.progress_messages && data.progress_messages.length > 0) {
+                for (const progressMsg of data.progress_messages) {
+                    this.addBotMessage(progressMsg, true);
+                    await new Promise(resolve => setTimeout(resolve, 800));
                 }
             }
 
-            // Reset sensitive input mode after sending
+            // Hide typing indicator and show final response
+            this.hideTypingIndicator();
+            this.addBotMessage(data.response);
+
+            // Handle any attachments
+            if (data.has_attachment && data.attachment) {
+                this.handleAttachment(data.attachment);
+            }
+
+            // Reset sensitive input mode
             if (this.sensitiveInputMode) {
                 this.sensitiveInputMode = false;
                 this.messageInput.type = 'text';
             }
+
         } catch (error) {
-            // Make sure to hide typing indicator on error
             this.hideTypingIndicator();
             console.error('Error sending message:', error);
             this.addBotMessage('❌ Sorry, there was an error processing your message. Please try again.');
+        }
+    }
+
+    handleAttachment(attachment) {
+        const messages = Array.from(this.chatMessages.children);
+        const lastBotMessage = messages.reverse().find(msg => 
+            msg.classList.contains('bot-message') && !msg.classList.contains('progress-message')
+        );
+
+        if (lastBotMessage) {
+            const downloadContainer = document.createElement('div');
+            downloadContainer.className = 'download-container';
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'download-btn';
+            downloadBtn.innerHTML = '<i class="fas fa-file-excel"></i> Download Data';
+            downloadBtn.onclick = () => this.downloadAttachment(attachment);
+            
+            downloadContainer.appendChild(downloadBtn);
+            lastBotMessage.appendChild(downloadContainer);
+            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
         }
     }
 

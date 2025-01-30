@@ -2,14 +2,19 @@ export class QuickActionsModule {
     constructor(chatModule) {
         this.chatModule = chatModule;
         this.actionHandlers = {
-            'portfolio-overview': () => this.chatModule.sendMessage('portfolio-overview'),
-            'portfolio-performance': () => this.chatModule.sendMessage('portfolio-performance'),
-            'market-overview': () => this.chatModule.sendMessage('market-overview'),
-            'market-news': () => this.chatModule.sendMessage('market-news'),
-            'risk-analysis': () => this.chatModule.sendMessage('risk-analysis'),
-            'technical-indicators': () => this.chatModule.sendMessage('technical-indicators'),
-            'start-guide': () => this.chatModule.sendMessage('start-guide')
+            'portfolio-overview': () => this.handleAction('Can you give me an overview of my current portfolio?'),
+            'portfolio-performance': () => this.handleAction('Analyze my portfolio performance'),
+            'market-overview': () => this.handleAction('What\'s happening in the markets today? Give me a summary of major indices.'),
+            'market-news': () => this.handleAction('What are the latest market news and developments?'),
+            'risk-analysis': () => this.handleAction('Can you analyze the risk level of my current portfolio?'),
+            'technical-indicators': () => this.handleAction('Show me the key technical indicators for my portfolio holdings'),
+            'start-guide': () => this.handleAction('I\'m new here. Can you guide me through what you can help me with?')
         };
+    }
+
+    handleAction(message) {
+        console.log('Sending action message:', message);
+        this.chatModule.sendMessage(message);
     }
 
     initialize() {
