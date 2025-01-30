@@ -7,6 +7,11 @@ export class PerformanceModule {
         this.currentTimeframe = '1D';
         this.performanceSection = document.getElementById('performance-section');
         this.toggleButton = document.getElementById('toggle-performance');
+        this.currentView = 'chart'; // 'chart' or 'table'
+        this.toggleViewButton = document.getElementById('toggle-view');
+        this.chartContainer = null;
+        this.tableContainer = null;
+        this.performanceTable = null;
         this.setupEventListeners();
     }
 
@@ -45,6 +50,18 @@ export class PerformanceModule {
         if (this.performanceSection && this.performanceSection.style.display !== 'none') {
             this.loadPerformanceData(this.currentTimeframe);
         }
+
+        // Add toggle view button listener
+        if (this.toggleViewButton) {
+            this.toggleViewButton.addEventListener('click', () => {
+                this.toggleView();
+            });
+        }
+
+        // Store references to containers
+        this.chartContainer = document.querySelector('.performance-chart-container');
+        this.tableContainer = document.querySelector('.performance-table-container');
+        this.performanceTable = document.getElementById('performance-table');
     }
 
     getTimeframeParams(timeframe) {
@@ -224,6 +241,9 @@ export class PerformanceModule {
                 }
             }
         });
+
+        // Update table view
+        this.updateTable(dataPoints);
     }
 
     getTimeUnit(timeframe) {
@@ -270,5 +290,50 @@ export class PerformanceModule {
             const lowValue = Math.min(...data.history.equity);
             periodLow.textContent = formatCurrency(lowValue);
         }
+    }
+
+    toggleView() {
+        if (this.currentView === 'chart') {
+            this.currentView = 'table';
+            this.chartContainer.style.display = 'none';
+            this.tableContainer.style.display = 'block';
+            this.toggleViewButton.innerHTML = '<i class="fas fa-chart-area"></i>';
+        } else {
+            this.currentView = 'chart';
+            this.chartContainer.style.display = 'block';
+            this.tableContainer.style.display = 'none';
+            this.toggleViewButton.innerHTML = '<i class="fas fa-table"></i>';
+        }
+    }
+
+    updateTable(dataPoints) {
+        if (!this.performanceTable) return;
+
+        const tbody = this.performanceTable.querySelector('tbody');
+        tbody.innerHTML = '';
+
+        // Sort data points by date in descending order
+        const sortedData = [...dataPoints].sort((a, b) => b.x - a.x);
+
+        sortedData.forEach((point, index) => {
+            const row = document.createElement('tr');
+            const date = point.x.toLocaleString();
+            const value = formatCurrency(point.y);
+            
+            // Calculate change from previous point
+            let change = '';
+            if (index < sortedData.length - 1) {
+                const changeValue = ((point.y - sortedData[index + 1].y) / sortedData[index + 1].y) * 100;
+                const changeClass = changeValue >= 0 ? 'positive' : 'negative';
+                change = `<span class="${changeClass}">${formatPercentage(changeValue)}</span>`;
+            }
+
+            row.innerHTML = `
+                <td>${date}</td>
+                <td>${value}</td>
+                <td>${change}</td>
+            `;
+            tbody.appendChild(row);
+        });
     }
 } 

@@ -11,10 +11,15 @@
         <div class="portfolio-card">
             <div class="card-header">
                 <h3>Account Summary</h3>
-                <button id="toggle-performance" class="toggle-btn">
-                    <i class="fas fa-chart-area"></i>
-                    Performance
-                </button>
+                <div class="header-controls">
+                    <button id="toggle-performance" class="toggle-btn">
+                        <i class="fas fa-chart-area"></i>
+                        Performance
+                    </button>
+                    <button id="toggle-view" class="toggle-btn" title="Toggle between graph and table view">
+                        <i class="fas fa-table"></i>
+                    </button>
+                </div>
             </div>
             
             <!-- Performance Graph Section (Hidden by default) -->
@@ -29,6 +34,21 @@
                 </div>
                 <div class="performance-chart-container">
                     <canvas id="performance-chart"></canvas>
+                </div>
+                <div class="performance-table-container" style="display: none;">
+                    <div class="table-wrapper">
+                        <table id="performance-table" class="performance-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Portfolio Value</th>
+                                    <th>Change</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="performance-stats">
                     <div class="stat-item">

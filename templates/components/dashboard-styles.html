@@ -502,4 +502,76 @@
     background: rgba(220, 53, 69, 0.1);
     border-radius: 0.5rem;
 }
+
+.header-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.toggle-btn {
+    background: var(--dark-bg-tertiary);
+    border: 1px solid var(--dark-border);
+    color: var(--dark-text-secondary);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+    background: var(--dark-bg-primary);
+    color: var(--dark-text-primary);
+}
+
+.toggle-btn.active {
+    background: var(--accent-color);
+    color: var(--dark-text-primary);
+    border-color: var(--accent-color);
+}
+
+.performance-table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    margin: 1rem 0;
+}
+
+.table-wrapper {
+    width: 100%;
+}
+
+.performance-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--dark-text-primary);
+}
+
+.performance-table th,
+.performance-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--dark-border);
+}
+
+.performance-table th {
+    background: var(--dark-bg-tertiary);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.performance-table tbody tr:hover {
+    background: var(--dark-bg-tertiary);
+}
+
+.performance-table .positive {
+    color: var(--success-color);
+}
+
+.performance-table .negative {
+    color: var(--error-color);
+}
 </style>
