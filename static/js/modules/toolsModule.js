@@ -74,11 +74,7 @@ export class ToolsModule {
                 this.showTool('trade');
                 break;
             case 'show_analysis':
-                const analysisEvent = new CustomEvent('chatMessage', {
-                    detail: "Could you provide a comprehensive analysis of my portfolio performance?"
-                });
-                document.dispatchEvent(analysisEvent);
-                this.showTool('analysis');
+                this.showTool('total-assets');
                 break;
             case 'show_custom_portfolio':
                 const portfolioEvent = new CustomEvent('chatMessage', {
@@ -146,8 +142,8 @@ export class ToolsModule {
             case 'trade':
                 this.setupTradeForm();
                 break;
-            case 'analysis':
-                this.initializeAnalysisForm();
+            case 'total-assets':
+                this.showTotalAssetsMessage();
                 break;
             case 'custom-portfolio':
                 this.showCustomPortfolioMessage();
@@ -499,57 +495,16 @@ export class ToolsModule {
         return orderData;
     }
 
-    initializeAnalysisForm() {
-        const analyzeButton = document.getElementById('analyze-symbol');
-        const analysisData = document.getElementById('analysis-data');
-        
-        analyzeButton.addEventListener('click', async () => {
-            const symbol = document.getElementById('analysis-symbol').value;
-            if (!symbol) {
-                alert('Please enter a symbol');
-                return;
-            }
-            
-            try {
-                analysisData.style.display = 'block';
-                analysisData.innerHTML = 'Loading analysis...';
-                
-                const response = await fetch(`/api/portfolio/analysis?symbol=${symbol}`);
-                const data = await response.json();
-                
-                if (data.error) {
-                    analysisData.innerHTML = `<div class="error-message">${data.error}</div>`;
-                    return;
-                }
-                
-                this.renderAnalysisResults(analysisData, data);
-                
-            } catch (error) {
-                analysisData.innerHTML = '<div class="error-message">Failed to get analysis</div>';
-            }
-        });
-    }
-
-    renderAnalysisResults(container, data) {
-        container.innerHTML = `
-            <div class="analysis-results">
-                <div class="analysis-header">
-                    <h4>${data.symbol}</h4>
-                    <div class="current-price">${formatCurrency(data.current_price)}</div>
-                </div>
-                <div class="indicators-grid">
-                    <div class="indicator-card">
-                        <div class="indicator-title">24h Change</div>
-                        <div class="indicator-value ${data.indicators.change_24h >= 0 ? 'positive' : 'negative'}">
-                            ${formatPercentage(data.indicators.change_24h)}
-                        </div>
-                    </div>
-                    <div class="indicator-card">
-                        <div class="indicator-title">Volume</div>
-                        <div class="indicator-value">${data.indicators.volume.toLocaleString()}</div>
-                    </div>
-                </div>
-            </div>`;
+    showTotalAssetsMessage() {
+        const assetsData = document.getElementById('total-assets-content');
+        if (assetsData) {
+            assetsData.innerHTML = `
+                <h3>Total Assets</h3>
+                <div class="coming-soon-message">
+                    <h3>🚀 Coming Soon!</h3>
+                    <p>Track all your assets in one place - stocks, real estate, crypto, precious metals, and more! Stay tuned for comprehensive asset management tools.</p>
+                </div>`;
+        }
     }
 
     showCustomPortfolioMessage() {

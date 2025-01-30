@@ -66,8 +66,31 @@
     }
 
     .message {
-        position: relative;  /* Add this for z-index to work */
-        z-index: 1;  /* Default z-index for messages */
+        position: relative;
+        z-index: 1;
+        line-height: 1.6;
+        margin: 12px 0;
+    }
+
+    .bot-message {
+        white-space: pre-line;  /* Preserve line breaks */
+    }
+
+    .message p {
+        margin: 12px 0;
+    }
+
+    .message ul {
+        margin: 8px 0;
+        padding-left: 20px;
+    }
+
+    .message li {
+        margin: 8px 0;
+    }
+
+    .emoji-bullet {
+        margin-right: 8px;
     }
 
     .download-container {
@@ -125,8 +148,9 @@
     .tool-response {
         background-color: #2d2d3a !important;
         border-left: 3px solid #4CAF50;
-        margin: 8px 0;
-        padding: 12px;
+        margin: 12px 0;
+        padding: 16px;
+        line-height: 1.6;
     }
 
     .data-table {
@@ -157,6 +181,18 @@
 
     .price-change-negative {
         color: #f44336;
+    }
+
+    /* Add spacing between sections in messages */
+    .message-section {
+        margin: 16px 0;
+    }
+
+    /* Style for important highlights */
+    .highlight {
+        background-color: rgba(76, 175, 80, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
     }
 </style>
 <div class="chat-panel">

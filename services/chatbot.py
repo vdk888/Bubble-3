@@ -114,31 +114,39 @@ class ChatbotService:
                 # Then validate against the Alpaca API
                 if self._validate_alpaca_credentials(user.alpaca_api_key, user.alpaca_secret_key):
                     return (
-                        "👋 Hello! I'm your AI financial assistant. I see you already have your Alpaca credentials set up - that's great! "
-                        "I can help you with:\n"
-                        "• Checking your portfolio value and positions\n"
-                        "• Viewing your recent trades\n"
-                        "• Analyzing market trends\n"
-                        "• Getting stock information\n\n"
-                        "What would you like to know about?"
+                        "👋 Welcome back! I hope you're having a good day.\n\n"
+                        "Before we dive into your portfolio, I'd like to know if there have been any significant changes "
+                        "in your life or financial situation that we should consider?\n\n"
+                        "I'm here to help you with:\n"
+                        "🔹 Reviewing your current portfolio performance\n"
+                        "🔹 Analyzing your total assets across different categories\n"
+                        "🔹 Providing market insights and investment opportunities\n"
+                        "🔹 Answering any questions about your financial strategy\n"
+                        "What would you like to focus on today?"
                     )
                 else:
                     return (
-                        "👋 Hello! I notice your stored Alpaca credentials are not working with the Alpaca API. "
-                        "Please provide valid Alpaca API and Secret keys to access trading features. "
-                        "You can either paste them here or update them in the settings page."
+                        "👋 Welcome! I notice there seems to be an issue with your Alpaca credentials.\n\n"
+                        "To help you manage your portfolio effectively, I'll need valid API credentials. "
+                        "You can either update them in the settings page or paste them here.\n\n"
+                        "How would you like to proceed?"
                     )
             else:
                 return (
-                    "👋 Hello! I notice your stored Alpaca credentials appear to be invalid. "
-                    "Please provide valid Alpaca API and Secret keys to access trading features. "
-                    "You can either paste them here or update them in the settings page."
+                    "👋 Welcome! There appears to be an issue with your stored credentials.\n\n"
+                    "To ensure I can provide you with accurate portfolio management, please provide valid "
+                    "Alpaca API credentials. You can update them in settings or share them here.\n\n"
+                    "Which would you prefer?"
                 )
         else:
             return (
-                "👋 Hello! I'm your AI financial assistant. To help you manage your portfolio and provide market insights, "
-                "I'll need your Alpaca trading account credentials. You can paste your API key and Secret key here, "
-                "or set them up in the settings page. What would you prefer?"
+                "👋 Welcome! I'm your AI financial assistant.\n\n"
+                "To get started and provide you with personalized portfolio management, I'll need your "
+                "Alpaca trading account credentials.\n\n"
+                "You can either:\n"
+                "🔹 Paste your API and Secret keys here\n"
+                "🔹 Set them up in the settings page\n\n"
+                "Which option works better for you?"
             )
 
     def initialize_portfolio_service(self, api_key, secret_key):
