@@ -17,6 +17,34 @@ export class ToolsModule {
 
         // Listen for tool selection
         document.addEventListener('toolSelected', (event) => {
+            // Create appropriate chat message based on the selected tool
+            let chatMessage;
+            switch (event.detail) {
+                case 'positions':
+                    chatMessage = "Could you analyze my current portfolio positions and provide insights about my holdings?";
+                    break;
+                case 'orders':
+                    chatMessage = "Please show me my recent orders and any patterns or trends you notice.";
+                    break;
+                case 'trade':
+                    chatMessage = "I'd like to place a trade. Could you help me understand my current trading options?";
+                    break;
+                case 'analysis':
+                    chatMessage = "Could you provide a detailed market analysis?";
+                    break;
+                case 'portfolio-performance':
+                    chatMessage = "Please provide a comprehensive analysis of my portfolio performance. What are the key trends and metrics I should be aware of?";
+                    break;
+                default:
+                    chatMessage = `Show me information about ${event.detail}`;
+            }
+
+            // Dispatch chat message event
+            document.dispatchEvent(new CustomEvent('chatMessage', {
+                detail: chatMessage
+            }));
+
+            // Show the tool
             this.showTool(event.detail);
         });
     }
@@ -24,18 +52,39 @@ export class ToolsModule {
     handleBotAction(action) {
         switch (action.type) {
             case 'show_positions':
+                // Customize the message sent to chatbot for positions
+                const positionsEvent = new CustomEvent('chatMessage', {
+                    detail: "Could you analyze my current portfolio positions and provide insights about my holdings?"
+                });
+                document.dispatchEvent(positionsEvent);
                 this.showTool('positions');
                 break;
             case 'show_orders':
+                const ordersEvent = new CustomEvent('chatMessage', {
+                    detail: "Please show me my recent orders and any patterns or trends you notice."
+                });
+                document.dispatchEvent(ordersEvent);
                 this.showTool('orders');
                 break;
             case 'show_trade':
+                const tradeEvent = new CustomEvent('chatMessage', {
+                    detail: "I'd like to place a trade. Could you help me understand my current trading options?"
+                });
+                document.dispatchEvent(tradeEvent);
                 this.showTool('trade');
                 break;
             case 'show_analysis':
+                const analysisEvent = new CustomEvent('chatMessage', {
+                    detail: "Could you provide a comprehensive analysis of my portfolio performance?"
+                });
+                document.dispatchEvent(analysisEvent);
                 this.showTool('analysis');
                 break;
             case 'show_custom_portfolio':
+                const portfolioEvent = new CustomEvent('chatMessage', {
+                    detail: "I'd like to explore custom portfolio options. What strategies would you recommend?"
+                });
+                document.dispatchEvent(portfolioEvent);
                 this.showTool('custom-portfolio');
                 break;
             case 'place_order':

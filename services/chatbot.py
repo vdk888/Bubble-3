@@ -457,13 +457,13 @@ class ChatbotService:
                 model=self.model,
                 messages=self.conversation_history,
                 temperature=0.7,
-                max_tokens=1500
+                max_tokens=1800
             )
 
             bot_response = response.choices[0].message.content
-            print(f"Initial bot response: {bot_response}")  # Debug log
+            print(f"Initial bot response: {bot_response}")
 
-            # Check if the response contains a tool command
+            # The model will naturally use TOOL commands when needed
             if "TOOL:" in bot_response:
                 # Extract the tool command - it might be followed by additional text
                 command_parts = bot_response.split("\n")

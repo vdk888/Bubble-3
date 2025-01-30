@@ -113,8 +113,18 @@ export class ChatModule {
             return;
         }
 
+        // Natural language questions for each action
+        const actionToQuestion = {
+            'portfolio-performance': 'Could you analyze my portfolio performance over 3 months and show me the key metrics and trends?',
+            'portfolio-overview': 'Could you show me my current portfolio positions and provide some insights?',
+            'market-overview': 'What is the current market situation? Could you provide an overview?'
+        };
+
+        // Convert action to natural question if applicable
+        const actualMessage = actionToQuestion[message] || message;
+
         // Add user message to chat
-        const displayMessage = this.sensitiveInputMode ? '******* [API Key] *******' : message;
+        const displayMessage = this.sensitiveInputMode ? '******* [API Key] *******' : actualMessage;
         this.addUserMessage(displayMessage);
 
         // Show typing indicator
@@ -126,7 +136,7 @@ export class ChatModule {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({ message: actualMessage })
             });
 
             if (!response.ok) {
