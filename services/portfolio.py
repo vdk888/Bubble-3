@@ -12,14 +12,16 @@ from alpaca_service.alpaca_service import AlpacaService
 
 class PortfolioService:
     def __init__(self):
-        self.alpaca = AlpacaService()
+        self.alpaca = None
         self.account_info = None
         self.positions = None
         self.portfolio_history = None
 
     def initialize_with_credentials(self, api_key, secret_key):
         """Initialize the service with user credentials"""
-        self.alpaca.update_credentials(api_key, secret_key)
+        self.alpaca = AlpacaService(api_key, secret_key)
+        # Test connection
+        self.alpaca.get_account_info()
         self.refresh_data()
 
     def refresh_data(self):
@@ -159,7 +161,7 @@ class PortfolioService:
             }
         }
 
-    def get_portfolio_history(self):
+    def get_portfolio_history(self, timeframe='1D'):
         """Get portfolio performance history data"""
         if not self.portfolio_history:
             raise ValueError("Portfolio not initialized. Please configure Alpaca credentials.")
@@ -195,6 +197,11 @@ class PortfolioService:
         except Exception as e:
             print(f"Error getting trades: {str(e)}")
             return []
+
+    def get_positions(self):
+        if not self.alpaca:
+            raise ValueError("Alpaca service not initialized")
+        return self.alpaca.get_positions()
 
 def get_positions(api_key: str, secret_key: str) -> List[Dict[str, Any]]:
     """Get current positions from Alpaca"""

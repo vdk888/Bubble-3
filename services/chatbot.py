@@ -1,5 +1,5 @@
 import openai
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import json
 import re
 from datetime import datetime
@@ -36,6 +36,16 @@ class ChatbotService:
                 Usage: When you need company details, respond with:
                 "TOOL:COMPANY_INFO:{symbol}"
                 Example: "TOOL:COMPANY_INFO:AAPL"
+
+                4. PORTFOLIO_POSITIONS - Get current portfolio positions
+                Usage: When you need portfolio positions, respond with:
+                "TOOL:PORTFOLIO_POSITIONS"
+
+                5. PORTFOLIO_PERFORMANCE - Get portfolio performance history
+                Usage: When you need portfolio performance, respond with:
+                "TOOL:PORTFOLIO_PERFORMANCE:{timeframe}"
+                Example: "TOOL:PORTFOLIO_PERFORMANCE:1D"
+                Timeframes: 1D, 1W, 1M, 3M, 1Y, ALL
 
                 When users ask questions:
                 1. Determine if you need any market data to provide a complete answer
@@ -177,8 +187,26 @@ class ChatbotService:
 
     def initialize_portfolio_service(self, api_key, secret_key):
         """Initialize portfolio service with user credentials"""
-        self.portfolio_service = PortfolioService()
-        self.portfolio_service.initialize_with_credentials(api_key, secret_key)
+        try:
+            if not api_key or not secret_key:
+                print("Missing Alpaca credentials")
+                self.portfolio_service = None
+                raise ValueError("Missing Alpaca credentials")
+
+            from services.portfolio import PortfolioService
+            print(f"Creating new portfolio service instance...")
+            self.portfolio_service = PortfolioService()
+            print(f"Initializing portfolio service with credentials...")
+            self.portfolio_service.initialize_with_credentials(api_key, secret_key)
+            
+            # Verify the service is working by testing a basic operation
+            test_positions = self.portfolio_service.get_positions()
+            print(f"Portfolio service initialized successfully - found {len(test_positions)} positions")
+            
+        except Exception as e:
+            print(f"Error initializing portfolio service: {str(e)}")
+            self.portfolio_service = None
+            raise
 
     def _send_progress(self, message):
         """Helper method to send progress updates"""
@@ -405,6 +433,19 @@ class ChatbotService:
     def process_message(self, user_message: str, user=None) -> Dict[str, Any]:
         """Process a user message and return the response"""
         try:
+            # Check if we have a user and if they have Alpaca credentials
+            if user and user.has_alpaca_credentials() and not self.portfolio_service:
+                try:
+                    print("Initializing portfolio service with user credentials...")
+                    self.initialize_portfolio_service(user.alpaca_api_key, user.alpaca_secret_key)
+                    print("Portfolio service initialized successfully")
+                except Exception as e:
+                    print(f"Error initializing portfolio service: {str(e)}")
+                    return {
+                        "response": "I'm having trouble accessing your portfolio data. Please verify your Alpaca credentials in settings.",
+                        "requires_action": True
+                    }
+
             # Add user message to conversation
             self.conversation_history.append({
                 "role": "user",
@@ -480,15 +521,68 @@ class ChatbotService:
     def _handle_tool_command(self, command: str) -> Dict:
         """Handle tool commands from the chatbot"""
         try:
-            print(f"Processing tool command: {command}")  # Debug log
+            print(f"Processing tool command: {command}")
             parts = command.split(":")
             if len(parts) < 2:
                 return {"error": "Invalid tool command"}
 
             tool = parts[1]
-            print(f"Tool type: {tool}")  # Debug log
-            
-            if tool == "PRICE_DATA":
+            print(f"Tool type: {tool}")
+
+            # Check if portfolio service is initialized for portfolio-related tools
+            if tool in ["PORTFOLIO_POSITIONS", "PORTFOLIO_PERFORMANCE"]:
+                if not self.portfolio_service:
+                    print("Portfolio service not initialized")
+                    return {
+                        "response": "I need access to your Alpaca trading account to provide portfolio information. "
+                                   "Please make sure your credentials are set up in the settings page.",
+                        "requires_action": True
+                    }
+                print("Portfolio service is initialized and ready")
+
+            if tool == "PORTFOLIO_POSITIONS":
+                try:
+                    print("Fetching portfolio positions...")
+                    positions = self.portfolio_service.get_positions()
+                    if not positions:
+                        return {
+                            "response": "Your portfolio currently has no positions.",
+                            "data": []
+                        }
+                    print(f"Retrieved {len(positions)} positions")
+                    formatted_response = self._format_positions_response(positions)
+                    print("Successfully formatted positions response")
+                    return {
+                        "response": formatted_response,
+                        "data": positions
+                    }
+                except Exception as e:
+                    print(f"Error in portfolio positions handling: {str(e)}")
+                    return {
+                        "response": "I encountered an error while fetching your portfolio positions. "
+                                   "Please verify your Alpaca credentials are still valid.",
+                        "requires_action": True
+                    }
+
+            elif tool == "PORTFOLIO_PERFORMANCE":
+                if len(parts) != 3:
+                    return {"error": "Invalid PORTFOLIO_PERFORMANCE command format"}
+                timeframe = parts[2]
+                try:
+                    print(f"Fetching portfolio performance for timeframe: {timeframe}")
+                    performance = self.portfolio_service.alpaca.get_portfolio_history(timeframe=timeframe)
+                    print("Successfully retrieved portfolio performance")
+                    formatted_response = self._format_performance_response(performance)
+                    print("Successfully formatted performance response")
+                    return {
+                        "response": formatted_response,
+                        "data": performance
+                    }
+                except Exception as e:
+                    print(f"Error in portfolio performance handling: {str(e)}")
+                    return {"error": f"Failed to get portfolio performance: {str(e)}"}
+
+            elif tool == "PRICE_DATA":
                 if len(parts) != 4:
                     return {"error": "Invalid PRICE_DATA command format"}
                 symbols = [s.strip() for s in parts[2].split(",")]
@@ -771,3 +865,54 @@ class ChatbotService:
             response_parts.append("\n".join(response))
         
         return "\n\n".join(response_parts)
+
+    def _format_positions_response(self, positions: List[Dict]) -> str:
+        """Format positions data into a user-friendly response"""
+        if not positions:
+            return "No positions found in the portfolio."
+
+        response = ["📊 Current Portfolio Positions:\n"]
+        total_value = sum(position['market_value'] for position in positions)
+
+        for position in positions:
+            allocation = (position['market_value'] / total_value * 100) if total_value > 0 else 0
+            pl_class = "profit" if position['unrealized_pl'] >= 0 else "loss"
+            
+            position_details = [
+                f"🔸 {position['symbol']} ({allocation:.1f}% of portfolio)",
+                f"   Quantity: {position['qty']} shares",
+                f"   Market Value: ${position['market_value']:,.2f}",
+                f"   P/L: ${position['unrealized_pl']:,.2f} ({position['unrealized_plpc']:.2f}%)",
+                f"   Current Price: ${position['current_price']:,.2f}",
+                f"   Avg Entry: ${position['avg_entry_price']:,.2f}\n"
+            ]
+            response.extend(position_details)
+
+        response.append(f"\nTotal Portfolio Value: ${total_value:,.2f}")
+        return "\n".join(response)
+
+    def _format_performance_response(self, performance: Dict) -> str:
+        """Format performance data into a user-friendly response"""
+        if not performance or 'equity' not in performance:
+            return "No performance data available."
+
+        equity_values = [v for v in performance['equity'] if v is not None]
+        if not equity_values:
+            return "No valid performance data available."
+
+        current_value = equity_values[-1]
+        start_value = equity_values[0]
+        total_return = ((current_value - start_value) / start_value * 100) if start_value > 0 else 0
+        max_value = max(equity_values)
+        min_value = min(equity_values)
+
+        response = [
+            "📈 Portfolio Performance Summary:\n",
+            f"Current Value: ${current_value:,.2f}",
+            f"Period Return: {total_return:+.2f}%",
+            f"Period High: ${max_value:,.2f}",
+            f"Period Low: ${min_value:,.2f}",
+            "\nNote: Past performance does not guarantee future results."
+        ]
+
+        return "\n".join(response)
