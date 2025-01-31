@@ -229,12 +229,35 @@
     .modal-content {
         position: relative;
         background-color: #1e1e2d;
-        margin: 10% auto;
+        margin: 5% auto;  /* Reduced from 10% to 5% to give more vertical space */
         padding: 20px;
         width: 80%;
         max-width: 600px;
         border-radius: 8px;
         color: #ffffff;
+        max-height: 80vh;  /* Set maximum height to 80% of viewport height */
+        overflow-y: auto;  /* Enable vertical scrolling */
+        scrollbar-width: thin;  /* For Firefox */
+        scrollbar-color: #4CAF50 #2d2d3a;  /* For Firefox */
+    }
+
+    /* Webkit scrollbar styling (Chrome, Safari, Edge) */
+    .modal-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .modal-content::-webkit-scrollbar-track {
+        background: #2d2d3a;
+        border-radius: 4px;
+    }
+
+    .modal-content::-webkit-scrollbar-thumb {
+        background: #4CAF50;
+        border-radius: 4px;
+    }
+
+    .modal-content::-webkit-scrollbar-thumb:hover {
+        background: #45a049;
     }
 
     .close-modal {
