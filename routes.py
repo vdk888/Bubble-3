@@ -8,6 +8,14 @@ from datetime import datetime, timedelta
 import pytz
 from dateutil.relativedelta import relativedelta
 from services.chatbot import ChatbotService
+from alpaca.trading.client import TradingClient
+from alpaca.trading.requests import (
+    MarketOrderRequest,
+    LimitOrderRequest,
+    StopOrderRequest,
+    StopLimitOrderRequest
+)
+from alpaca.trading.enums import OrderSide, TimeInForce
 
 api = Blueprint('api', __name__)
 
@@ -233,40 +241,53 @@ def place_trade():
             return jsonify({'error': 'Missing required trade parameters'}), 400
 
         # Create proper order request based on type
-        order_params = {
-            'symbol': symbol,
-            'qty': float(qty),
-            'side': side,
-            'time_in_force': 'day'
-        }
-
         if type.lower() == 'market':
-            order_params['type'] = 'market'
+            order_data = MarketOrderRequest(
+                symbol=symbol,
+                qty=float(qty),
+                side=OrderSide.BUY if side.lower() == 'buy' else OrderSide.SELL,
+                time_in_force=TimeInForce.DAY
+            )
         elif type.lower() == 'limit':
             limit_price = data.get('limit_price')
             if not limit_price:
                 return jsonify({'error': 'Missing limit price for limit order'}), 400
-            order_params['type'] = 'limit'
-            order_params['limit_price'] = float(limit_price)
+            order_data = LimitOrderRequest(
+                symbol=symbol,
+                qty=float(qty),
+                side=OrderSide.BUY if side.lower() == 'buy' else OrderSide.SELL,
+                time_in_force=TimeInForce.DAY,
+                limit_price=float(limit_price)
+            )
         elif type.lower() == 'stop':
             stop_price = data.get('stop_price')
             if not stop_price:
                 return jsonify({'error': 'Missing stop price for stop order'}), 400
-            order_params['type'] = 'stop'
-            order_params['stop_price'] = float(stop_price)
+            order_data = StopOrderRequest(
+                symbol=symbol,
+                qty=float(qty),
+                side=OrderSide.BUY if side.lower() == 'buy' else OrderSide.SELL,
+                time_in_force=TimeInForce.DAY,
+                stop_price=float(stop_price)
+            )
         elif type.lower() == 'stop_limit':
             stop_price = data.get('stop_price')
             limit_price = data.get('limit_price')
             if not stop_price or not limit_price:
                 return jsonify({'error': 'Missing stop price or limit price for stop limit order'}), 400
-            order_params['type'] = 'stop_limit'
-            order_params['stop_price'] = float(stop_price)
-            order_params['limit_price'] = float(limit_price)
+            order_data = StopLimitOrderRequest(
+                symbol=symbol,
+                qty=float(qty),
+                side=OrderSide.BUY if side.lower() == 'buy' else OrderSide.SELL,
+                time_in_force=TimeInForce.DAY,
+                stop_price=float(stop_price),
+                limit_price=float(limit_price)
+            )
         else:
             return jsonify({'error': 'Unsupported order type'}), 400
 
-        # Submit the order with the constructed parameters
-        order = portfolio_service.alpaca.client.submit_order(**order_params)
+        # Submit the order with the constructed order data
+        order = portfolio_service.alpaca.client.submit_order(order_data)
         
         return jsonify({
             'message': 'Order placed successfully',
