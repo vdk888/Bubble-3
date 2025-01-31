@@ -411,7 +411,9 @@ class ChatbotService:
 
             elif tool == "IMPORTANT_INFO":
                 if len(parts) != 4:
+                    print("Error: Invalid IMPORTANT_INFO command format")
                     return {"error": "Invalid IMPORTANT_INFO command format"}
+                
                 info_type = parts[2]
                 content = parts[3]
                 
@@ -421,33 +423,89 @@ class ChatbotService:
                     from flask_login import current_user
                     from models import UserInfo, db
                     
-                    if not current_user or not current_user.is_authenticated:
-                        print("No authenticated user found")
+                    print(f"[IMPORTANT_INFO] Starting process for info_type: {info_type}")
+                    print(f"[IMPORTANT_INFO] Content to store: {content}")
+                    
+                    # Check user authentication
+                    if not current_user:
+                        print("[IMPORTANT_INFO] Error: current_user object is None")
                         return {
-                            "response": "Cannot save user information - no user logged in",
+                            "response": "Cannot save user information - no user context found",
                             "requires_action": True
                         }
+                        
+                    if not current_user.is_authenticated:
+                        print("[IMPORTANT_INFO] Error: User is not authenticated")
+                        return {
+                            "response": "Cannot save user information - user not authenticated",
+                            "requires_action": True
+                        }
+                        
+                    print(f"[IMPORTANT_INFO] User authenticated successfully. User ID: {current_user.id}")
                     
                     # Create new UserInfo instance
-                    new_info = UserInfo(
-                        user_id=current_user.id,
-                        info_type=info_type,
-                        content=content
-                    )
+                    try:
+                        new_info = UserInfo(
+                            user_id=current_user.id,
+                            info_type=info_type,
+                            content=content
+                        )
+                        print(f"[IMPORTANT_INFO] Created new UserInfo instance for user {current_user.id}")
+                    except Exception as e:
+                        print(f"[IMPORTANT_INFO] Error creating UserInfo instance: {str(e)}")
+                        raise
                     
+                    # Verify app context
+                    if not current_app:
+                        print("[IMPORTANT_INFO] Error: No Flask app context")
+                        return {
+                            "response": "Server configuration error - no app context",
+                            "requires_action": False
+                        }
+                    
+                    print("[IMPORTANT_INFO] Starting database operation...")
                     # Add and commit to database within app context
-                    with current_app.app_context():
-                        db.session.add(new_info)
-                        db.session.commit()
-                        print(f"Successfully stored important info for user {current_user.id}")
-                    
-                    return {
-                        "response": f"✅ I've noted this important information about your {info_type}.",
-                        "data": {"type": info_type, "content": content}
-                    }
+                    try:
+                        with current_app.app_context():
+                            print("[IMPORTANT_INFO] Entered app context")
+                            
+                            # Verify database session
+                            if not db.session:
+                                print("[IMPORTANT_INFO] Error: No database session available")
+                                return {
+                                    "response": "Database error - no session available",
+                                    "requires_action": False
+                                }
+                            
+                            print("[IMPORTANT_INFO] Adding to database session...")
+                            db.session.add(new_info)
+                            
+                            print("[IMPORTANT_INFO] Committing to database...")
+                            db.session.commit()
+                            
+                            print(f"[IMPORTANT_INFO] Successfully stored info for user {current_user.id}")
+                            
+                            return {
+                                "response": f"✅ I've noted this important information about your {info_type}.",
+                                "data": {"type": info_type, "content": content}
+                            }
+                            
+                    except Exception as e:
+                        print(f"[IMPORTANT_INFO] Database operation error: {str(e)}")
+                        # Attempt to rollback on error
+                        try:
+                            db.session.rollback()
+                            print("[IMPORTANT_INFO] Session rolled back after error")
+                        except Exception as rollback_error:
+                            print(f"[IMPORTANT_INFO] Rollback failed: {str(rollback_error)}")
+                        raise
+                        
                 except Exception as e:
-                    print(f"Error saving important info: {str(e)}")
-                    return {"error": f"Failed to save information: {str(e)}"}
+                    print(f"[IMPORTANT_INFO] Critical error in information storage: {str(e)}")
+                    return {
+                        "error": f"Failed to save information: {str(e)}",
+                        "details": "Check server logs for more information"
+                    }
 
             return {"error": f"Unknown tool: {tool}"}
 
