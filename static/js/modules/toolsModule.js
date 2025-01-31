@@ -495,16 +495,129 @@ export class ToolsModule {
         return orderData;
     }
 
-    showTotalAssetsMessage() {
+    async showTotalAssetsMessage() {
         const assetsData = document.getElementById('total-assets-content');
-        if (assetsData) {
-            assetsData.innerHTML = `
+        if (!assetsData) return;
+
+        try {
+            // Fetch assets data
+            const response = await fetch('/api/user/important-info?category=assets');
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to fetch assets data');
+            }
+
+            let html = `
                 <h3>Total Assets</h3>
-                <div class="coming-soon-message">
-                    <h3>🚀 Coming Soon!</h3>
-                    <p>Track all your assets in one place - stocks, real estate, crypto, precious metals, and more! Stay tuned for comprehensive asset management tools.</p>
+                <div class="assets-container">
+                    <div class="assets-list">`;
+
+            if (data.data && data.data.length > 0) {
+                data.data.forEach(asset => {
+                    html += `
+                        <div class="asset-item">
+                            <div class="asset-content">${asset.content}</div>
+                            <div class="asset-date">Last updated: ${new Date(asset.updated_at).toLocaleString()}</div>
+                        </div>`;
+                });
+            } else {
+                html += `
+                    <div class="no-assets-message">
+                        <p>No assets information found. You can add assets through the chat interface.</p>
+                    </div>`;
+            }
+
+            html += `
+                    </div>
+                    <button id="show-all-info" class="secondary-button">
+                        <i class="fas fa-eye"></i> Show All Information
+                    </button>
+                </div>`;
+
+            assetsData.innerHTML = html;
+
+            // Add event listener for the show all button
+            const showAllBtn = document.getElementById('show-all-info');
+            if (showAllBtn) {
+                showAllBtn.addEventListener('click', () => this.toggleAllUserInfo());
+            }
+
+        } catch (error) {
+            console.error('Error loading assets:', error);
+            assetsData.innerHTML = `
+                <div class="error-message">
+                    <p>Error loading assets information. Please try again later.</p>
                 </div>`;
         }
+    }
+
+    async toggleAllUserInfo() {
+        const assetsData = document.getElementById('total-assets-content');
+        if (!assetsData) return;
+
+        try {
+            const response = await fetch('/api/user/important-info');
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to fetch user information');
+            }
+
+            // Group information by type
+            const groupedInfo = {};
+            data.data.forEach(info => {
+                if (!groupedInfo[info.type]) {
+                    groupedInfo[info.type] = [];
+                }
+                groupedInfo[info.type].push(info);
+            });
+
+            let html = `
+                <h3>All User Information</h3>
+                <div class="all-info-container">`;
+
+            for (const [type, items] of Object.entries(groupedInfo)) {
+                html += `
+                    <div class="info-category">
+                        <h4>${this._formatInfoType(type)}</h4>
+                        ${items.map(item => `
+                            <div class="info-item">
+                                <div class="info-content">${item.content}</div>
+                                <div class="info-date">Last updated: ${new Date(item.updated_at).toLocaleString()}</div>
+                            </div>
+                        `).join('')}
+                    </div>`;
+            }
+
+            html += `
+                    <button id="show-assets-only" class="secondary-button">
+                        <i class="fas fa-chart-pie"></i> Show Assets Only
+                    </button>
+                </div>`;
+
+            assetsData.innerHTML = html;
+
+            // Add event listener for the show assets only button
+            const showAssetsBtn = document.getElementById('show-assets-only');
+            if (showAssetsBtn) {
+                showAssetsBtn.addEventListener('click', () => this.showTotalAssetsMessage());
+            }
+
+        } catch (error) {
+            console.error('Error loading all information:', error);
+            assetsData.innerHTML = `
+                <div class="error-message">
+                    <p>Error loading user information. Please try again later.</p>
+                </div>`;
+        }
+    }
+
+    _formatInfoType(type) {
+        return type
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     }
 
     showCustomPortfolioMessage() {

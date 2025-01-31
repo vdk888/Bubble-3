@@ -473,7 +473,12 @@ def chat():
 def get_user_important_info():
     """Get all important information stored for the user"""
     try:
+        category = request.args.get('category')
         info_items = current_user.get_stored_info()
+        
+        # Filter by category if specified
+        if category:
+            info_items = [item for item in info_items if item.info_type == category]
         
         # Format the response
         formatted_info = [{
