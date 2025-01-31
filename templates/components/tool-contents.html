@@ -57,79 +57,235 @@
 </div>
 
 <style>
-    .assets-container {
-        padding: 15px;
+    /* Update the Assets Section Styling */
+    .assets-overview {
+        background: var(--dark-bg-secondary);
+        border-radius: 8px;
+        overflow: hidden;
     }
 
-    .asset-item {
-        background: #2d2d3a;
-        border-left: 3px solid #4CAF50;
-        margin: 10px 0;
-        padding: 12px;
-        border-radius: 4px;
+    .assets-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: var(--dark-bg-tertiary);
+        border-bottom: 1px solid var(--dark-border);
+    }
+
+    .assets-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: var(--dark-text-primary);
+    }
+
+    .total-value {
+        font-size: 1.1rem;
+        color: var(--accent-color);
+        font-weight: 500;
+    }
+
+    .assets-container {
+        padding: 1rem;
+    }
+
+    .assets-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .asset-card {
+        background: var(--dark-bg-tertiary);
+        border: 1px solid var(--dark-border);
+        border-radius: 8px;
+        padding: 1rem;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 140px;
+    }
+
+    .asset-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-color: var(--accent-color);
+    }
+
+    .asset-info {
+        flex-grow: 1;
     }
 
     .asset-content {
-        font-size: 1.1em;
-        margin-bottom: 8px;
+        font-size: 1rem;
+        color: var(--dark-text-primary);
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
+    }
+
+    .asset-percentage {
+        font-size: 0.9rem;
+        color: var(--accent-color);
+        font-weight: 500;
+        margin-top: 0.5rem;
+    }
+
+    .asset-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--dark-border);
     }
 
     .asset-date {
-        font-size: 0.8em;
-        color: #a0a0a0;
+        font-size: 0.8rem;
+        color: var(--dark-text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .asset-date i {
+        font-size: 0.9rem;
+        opacity: 0.7;
     }
 
     .no-assets-message {
         text-align: center;
-        padding: 20px;
-        color: #a0a0a0;
+        padding: 3rem 1rem;
+        color: var(--dark-text-secondary);
+        background: var(--dark-bg-tertiary);
+        border-radius: 8px;
+        border: 1px solid var(--dark-border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .no-assets-message i {
+        color: var(--accent-color);
+        opacity: 0.5;
+    }
+
+    .no-assets-message p {
+        margin: 0;
+        font-size: 1.1rem;
+        color: var(--dark-text-primary);
+    }
+
+    .no-assets-message span {
+        font-size: 0.9rem;
+        opacity: 0.7;
     }
 
     .secondary-button {
-        background: #2d2d3a;
-        border: 1px solid #4CAF50;
-        color: #fff;
-        padding: 8px 16px;
-        border-radius: 4px;
+        background: var(--dark-bg-tertiary);
+        border: 1px solid var(--dark-border);
+        color: var(--dark-text-primary);
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
         cursor: pointer;
-        margin-top: 15px;
+        font-size: 0.9rem;
         display: flex;
         align-items: center;
-        gap: 8px;
+        justify-content: center;
+        gap: 0.5rem;
         transition: all 0.2s ease;
+        width: auto;
+        max-width: 200px;
+        margin: 0 auto;
     }
 
     .secondary-button:hover {
-        background: #4CAF50;
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
+    .secondary-button i {
+        font-size: 0.9rem;
+        transition: transform 0.2s ease;
+    }
+
+    .secondary-button:hover i {
+        transform: rotate(180deg);
+    }
+
+    .error-message {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        text-align: center;
+        padding: 2rem;
+        color: var(--error-color);
+        background: rgba(220, 53, 69, 0.1);
+        border-radius: 8px;
+        margin: 1rem;
+    }
+
+    .error-message i {
+        font-size: 2rem;
+    }
+
+    .error-message p {
+        margin: 0;
+        color: var(--dark-text-primary);
+    }
+
+    /* All Info Container Styling */
     .all-info-container {
-        padding: 15px;
+        padding: 0.75rem;
+        background: var(--dark-bg-secondary);
+        border-radius: 6px;
     }
 
     .info-category {
-        margin: 20px 0;
+        margin: 1rem 0;
+        background: var(--dark-bg-tertiary);
+        border-radius: 6px;
+        padding: 0.75rem;
+        border: 1px solid var(--dark-border);
     }
 
     .info-category h4 {
-        color: #4CAF50;
-        margin-bottom: 10px;
+        color: var(--accent-color);
+        font-size: 0.9rem;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--dark-border);
     }
 
     .info-item {
-        background: #2d2d3a;
-        border-left: 3px solid #4CAF50;
-        margin: 8px 0;
-        padding: 12px;
+        background: var(--dark-bg-secondary);
+        border: 1px solid var(--dark-border);
         border-radius: 4px;
+        margin: 0.5rem 0;
+        padding: 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+    .info-item:hover {
+        border-color: var(--accent-color);
+        transform: translateX(4px);
     }
 
     .info-content {
-        margin-bottom: 8px;
+        font-size: 0.85rem;
+        color: var(--dark-text-primary);
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
     }
 
     .info-date {
-        font-size: 0.8em;
-        color: #a0a0a0;
+        font-size: 0.75rem;
+        color: var(--dark-text-secondary);
+        opacity: 0.8;
     }
 </style>

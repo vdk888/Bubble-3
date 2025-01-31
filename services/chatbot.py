@@ -51,7 +51,7 @@ class ChatbotService:
                 Usage: When you detect important information about the user, respond with:
                 "TOOL:IMPORTANT_INFO:{info_type}:{content}"
                 Example: "TOOL:IMPORTANT_INFO:life_event:User mentioned they're planning to retire in 2025"
-                Info types: life_event, preference, goal, risk_profile
+                Info types - strict categories : 'asset','life_event', 'preference', 'goal', 'risk_profile'
 
                 7. TRADE_ORDER - Submit a trading order
                 Usage: When the user wants to place a trade, respond with:

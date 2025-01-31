@@ -500,31 +500,57 @@ export class ToolsModule {
         if (!assetsData) return;
 
         try {
-            // Fetch assets data
-            const response = await fetch('/api/user/important-info?category=assets');
+            const response = await fetch('/api/user/important-info?category=asset');
             const data = await response.json();
 
             if (!data.success) {
                 throw new Error(data.error || 'Failed to fetch assets data');
             }
 
+            let totalValue = 0;
+            if (data.data && data.data.length > 0) {
+                data.data.forEach(asset => {
+                    const valueMatch = asset.content.match(/(\d+(?:\s*\d+)*)\s*€/);
+                    if (valueMatch) {
+                        totalValue += parseInt(valueMatch[1].replace(/\s/g, ''));
+                    }
+                });
+            }
+
+            // Match the structure with the "show all" view
             let html = `
                 <h3>Total Assets</h3>
-                <div class="assets-container">
-                    <div class="assets-list">`;
+                <div class="all-info-container">
+                    <div class="info-category">
+                        <div class="assets-header">
+                            <h4>Assets Overview</h4>
+                            <div class="total-value">Total Value: ${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(totalValue)}</div>
+                        </div>`;
 
             if (data.data && data.data.length > 0) {
                 data.data.forEach(asset => {
+                    const valueMatch = asset.content.match(/(\d+(?:\s*\d+)*)\s*€/);
+                    const value = valueMatch ? parseInt(valueMatch[1].replace(/\s/g, '')) : 0;
+                    const percentage = totalValue > 0 ? ((value / totalValue) * 100).toFixed(1) : 0;
+                    
                     html += `
-                        <div class="asset-item">
-                            <div class="asset-content">${asset.content}</div>
-                            <div class="asset-date">Last updated: ${new Date(asset.updated_at).toLocaleString()}</div>
+                        <div class="info-item">
+                            <div class="info-content">
+                                <div class="asset-content">${asset.content}</div>
+                                <div class="asset-percentage">${percentage}% of total</div>
+                            </div>
+                            <div class="info-date">
+                                <i class="fas fa-clock"></i>
+                                Last updated: ${new Date(asset.updated_at).toLocaleDateString()}
+                            </div>
                         </div>`;
                 });
             } else {
                 html += `
                     <div class="no-assets-message">
-                        <p>No assets information found. You can add assets through the chat interface.</p>
+                        <i class="fas fa-inbox fa-2x"></i>
+                        <p>No assets information found</p>
+                        <span>You can add assets through the chat interface</span>
                     </div>`;
             }
 
@@ -546,8 +572,12 @@ export class ToolsModule {
         } catch (error) {
             console.error('Error loading assets:', error);
             assetsData.innerHTML = `
-                <div class="error-message">
-                    <p>Error loading assets information. Please try again later.</p>
+                <h3>Total Assets</h3>
+                <div class="all-info-container">
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Error loading assets information. Please try again later.</p>
+                    </div>
                 </div>`;
         }
     }
