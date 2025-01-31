@@ -74,6 +74,7 @@ class ChatbotService:
 
                 Remember:
                 - Be concise but informative
+                - IMPORTANT : Never put brackets "" around tool calls
                 - Explain market terms when used
                 - Provide context for numbers and trends
                 - Suggest relevant follow-up analysis when appropriate
