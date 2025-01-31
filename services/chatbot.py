@@ -53,11 +53,24 @@ class ChatbotService:
                 Example: "TOOL:IMPORTANT_INFO:life_event:User mentioned they're planning to retire in 2025"
                 Info types: life_event, preference, goal, risk_profile
 
+                7. TRADE_ORDER - Submit a trading order
+                Usage: When the user wants to place a trade, respond with:
+                "TOOL:TRADE_ORDER:{symbol}:{side}:{quantity}:{order_type}:{limit_price}:{stop_price}"
+                Example market order: "TOOL:TRADE_ORDER:AAPL:buy:10:market"
+                Example limit order: "TOOL:TRADE_ORDER:AAPL:buy:10:limit:150.00"
+                Example stop order: "TOOL:TRADE_ORDER:AAPL:sell:10:stop:145.00"
+                Example stop-limit order: "TOOL:TRADE_ORDER:AAPL:sell:10:stop_limit:145.00:144.00"
+                Note: limit_price and stop_price are optional depending on order_type
+
                 When users ask questions:
                 1. Determine if you need any market data to provide a complete answer
                 2. If yes, request the data using the appropriate tool command
                 3. Once you receive the data, analyze it and provide insights
                 4. Always explain your analysis and offer additional context
+
+                For trading orders:
+                1. Use appropriate order types based on the user's strategy
+                2. Provide order confirmation and status updates
 
                 Remember:
                 - Be concise but informative
@@ -319,7 +332,7 @@ class ChatbotService:
             print(f"Tool type: {tool}")
 
             # Check if portfolio service is initialized for portfolio-related tools
-            if tool in ["PORTFOLIO_POSITIONS", "PORTFOLIO_PERFORMANCE"]:
+            if tool in ["PORTFOLIO_POSITIONS", "PORTFOLIO_PERFORMANCE", "TRADE_ORDER"]:
                 if not self.portfolio_service:
                     print("Portfolio service not initialized")
                     return {
@@ -506,6 +519,61 @@ class ChatbotService:
                         "error": f"Failed to save information: {str(e)}",
                         "details": "Check server logs for more information"
                     }
+
+            elif tool == "TRADE_ORDER":
+                if len(parts) < 5:  # Minimum parts needed for a market order
+                    return {"error": "Invalid TRADE_ORDER command format"}
+                
+                symbol = parts[2]
+                side = parts[3]
+                qty = float(parts[4])
+                order_type = parts[5] if len(parts) > 5 else 'market'
+                
+                # Parse optional price parameters
+                limit_price = None
+                stop_price = None
+                if order_type == 'limit' and len(parts) > 6:
+                    limit_price = float(parts[6])
+                elif order_type == 'stop' and len(parts) > 6:
+                    stop_price = float(parts[6])
+                elif order_type == 'stop_limit' and len(parts) > 7:
+                    stop_price = float(parts[6])
+                    limit_price = float(parts[7])
+                
+                try:
+                    print(f"Submitting order: {symbol} {side} {qty} {order_type}")
+                    order_result = self.portfolio_service.alpaca.submit_order(
+                        symbol=symbol,
+                        side=side,
+                        qty=qty,
+                        order_type=order_type,
+                        limit_price=limit_price,
+                        stop_price=stop_price
+                    )
+                    
+                    # Format the response
+                    order_details = f"""✅ Order submitted successfully:
+• Symbol: {order_result['symbol']}
+• Side: {order_result['side']}
+• Quantity: {order_result['qty']}
+• Type: {order_result['type']}
+• Status: {order_result['status']}
+• Order ID: {order_result['id']}"""
+
+                    if order_result['filled_qty']:
+                        order_details += f"\n• Filled Quantity: {order_result['filled_qty']}"
+                    if order_result['filled_avg_price']:
+                        order_details += f"\n• Filled Price: ${order_result['filled_avg_price']:.2f}"
+                    
+                    return {
+                        "response": order_details,
+                        "data": order_result
+                    }
+                    
+                except Exception as e:
+                    error_msg = f"Failed to submit order: {str(e)}"
+                    print(error_msg)
+                    return {"error": error_msg}
 
             return {"error": f"Unknown tool: {tool}"}
 

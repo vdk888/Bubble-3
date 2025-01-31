@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from alpaca.trading.client import TradingClient
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestQuoteRequest
-from alpaca.trading.requests import GetOrdersRequest
-from alpaca.trading.enums import OrderStatus, QueryOrderStatus
+from alpaca.trading.requests import GetOrdersRequest, MarketOrderRequest
+from alpaca.trading.enums import OrderStatus, QueryOrderStatus, OrderSide, TimeInForce
 import os
 from decimal import Decimal
 from typing import Dict, List
@@ -240,3 +240,79 @@ class AlpacaService:
         plt.close()
         
         return buf
+
+    def submit_order(self, symbol: str, side: str, qty: float, order_type: str = 'market', 
+                    limit_price: float = None, stop_price: float = None) -> Dict:
+        """Submit a trading order to Alpaca.
+        
+        Args:
+            symbol: The stock/crypto symbol
+            side: 'buy' or 'sell'
+            qty: Quantity to trade
+            order_type: 'market', 'limit', 'stop', or 'stop_limit'
+            limit_price: Required for limit and stop_limit orders
+            stop_price: Required for stop and stop_limit orders
+            
+        Returns:
+            Dict containing order details and status
+        """
+        try:
+            # Validate order parameters
+            side = side.upper()
+            if side not in ['BUY', 'SELL']:
+                raise ValueError("Side must be 'buy' or 'sell'")
+                
+            order_type = order_type.lower()
+            if order_type not in ['market', 'limit', 'stop', 'stop_limit']:
+                raise ValueError("Invalid order type")
+                
+            # Create order request based on type
+            order_data = {
+                'symbol': symbol,
+                'qty': float(qty),
+                'side': OrderSide.BUY if side == 'BUY' else OrderSide.SELL,
+                'time_in_force': TimeInForce.DAY
+            }
+            
+            # Add price parameters based on order type
+            if order_type == 'limit':
+                if not limit_price:
+                    raise ValueError("Limit price required for limit orders")
+                order_data['limit_price'] = float(limit_price)
+                
+            elif order_type == 'stop':
+                if not stop_price:
+                    raise ValueError("Stop price required for stop orders")
+                order_data['stop_price'] = float(stop_price)
+                
+            elif order_type == 'stop_limit':
+                if not limit_price or not stop_price:
+                    raise ValueError("Both limit and stop prices required for stop-limit orders")
+                order_data['limit_price'] = float(limit_price)
+                order_data['stop_price'] = float(stop_price)
+            
+            # Submit the order
+            order = MarketOrderRequest(**order_data)
+            submitted_order = self.client.submit_order(order)
+            
+            # Format response
+            response = {
+                'id': submitted_order.id,
+                'client_order_id': submitted_order.client_order_id,
+                'status': submitted_order.status.value,
+                'symbol': submitted_order.symbol,
+                'side': submitted_order.side.value,
+                'qty': float(submitted_order.qty) if submitted_order.qty else None,
+                'type': submitted_order.type.value,
+                'submitted_at': submitted_order.submitted_at.isoformat() if submitted_order.submitted_at else None,
+                'filled_at': submitted_order.filled_at.isoformat() if submitted_order.filled_at else None,
+                'filled_qty': float(submitted_order.filled_qty) if submitted_order.filled_qty else None,
+                'filled_avg_price': float(submitted_order.filled_avg_price) if submitted_order.filled_avg_price else None
+            }
+            
+            print(f"Order submitted successfully: {response}")
+            return response
+            
+        except Exception as e:
+            print(f"Error submitting order: {str(e)}")
+            raise
